@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Money Diary - บันทึกรายรับรายจ่าย</title>
+
+  <!-- Typography: Prompt & Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400&family=Sarabun:wght@300;400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Firebase SDKs (v10 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* STRICT CONSTRAINT: No bold font anywhere in the application */
+    *, *::before, *::after,
+    h1, h2, h3, h4, h5, h6,
+    b, strong, th, td, input, button, select, textarea, span, p, label, div,
+    .font-bold, .font-semibold, .font-medium {
+      font-weight: 400 !important;
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: #334155;
+      font-family: 'Prompt', 'Sarabun', -apple-system, sans-serif;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.25rem;
+    }
+
+    .tap-action {
+      transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+    }
+    .tap-action:active {
+      transform: scale(0.96);
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* PIN Dots Animation */
+    .pin-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 9999px;
+      border: 1.5px solid #cbd5e1;
+      transition: all 0.15s ease;
+    }
+    .pin-dot.filled {
+      background-color: #059669;
+      border-color: #059669;
+      transform: scale(1.15);
+    }
+
+    /* Subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- INITIAL LOADER -->
+  <div id="appLoadingScreen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+    <div class="w-10 h-10 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div>
+    <p class="mt-4 text-xs text-slate-500">กำลังเชื่อมต่อระบบฐานข้อมูล...</p>
+  </div>
+
+  <!-- AUTH SCREEN (PASSWORD & PIN MODES) -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-slate-50 hidden">
+    <div class="card p-6 sm:p-8 w-full max-w-sm shadow-sm space-y-4">
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-2xl mx-auto mb-2">
+          <i class="ph ph-wallet"></i>
+        </div>
+        <h1 class="text-xl text-slate-800">Money Diary</h1>
+        <p class="text-xs text-slate-400">บันทึกรายรับรายจ่ายแยกบัญชีรายคน</p>
+      </div>
+
+      <!-- Mode Selector: Quick PIN vs Full Login vs Register -->
+      <div class="grid grid-cols-3 p-1 bg-slate-100 rounded-xl gap-1 text-[11px]">
+        <button type="button" id="tabBtnPin" onclick="switchAuthView('pin')" class="py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center">เข้าด้วย PIN</button>
+        <button type="button" id="tabBtnLogin" onclick="switchAuthView('login')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">รหัสผ่าน</button>
+        <button type="button" id="tabBtnRegister" onclick="switchAuthView('register')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">ลงทะเบียน</button>
+      </div>
+
+      <!-- VIEW 1: QUICK PIN LOGIN -->
+      <div id="authViewPin" class="space-y-4">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">เลือกบัญชีผู้ใช้</label>
+          <select id="pinUserSelect" onchange="onPinUserChanged()" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-700">
+            <option value="">กำลังโหลดรายชื่อผู้ใช้...</option>
+          </select>
+        </div>
+
+        <div class="text-center py-2 space-y-3">
+          <span class="text-xs text-slate-400 block">กดหรือพิมพ์รหัส PIN 4 หรือ 6 หลัก</span>
+          <div class="flex items-center justify-center gap-3" id="pinDotsContainer">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+          </div>
+        </div>
+
+        <!-- Touch Numeric Keypad -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+          <button type="button" onclick="pressPinDigit('1')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">1</button>
+          <button type="button" onclick="pressPinDigit('2')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">2</button>
+          <button type="button" onclick="pressPinDigit('3')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">3</button>
+          <button type="button" onclick="pressPinDigit('4')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">4</button>
+          <button type="button" onclick="pressPinDigit('5')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">5</button>
+          <button type="button" onclick="pressPinDigit('6')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">6</button>
+          <button type="button" onclick="pressPinDigit('7')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">7</button>
+          <button type="button" onclick="pressPinDigit('8')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">8</button>
+          <button type="button" onclick="pressPinDigit('9')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">9</button>
+          <button type="button" onclick="clearPin()" class="py-3 text-slate-400 hover:text-slate-600 text-xs rounded-2xl tap-action">ล้าง</button>
+          <button type="button" onclick="pressPinDigit('0')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">0</button>
+          <button type="button" onclick="deletePinDigit()" class="py-3 text-slate-400 hover:text-rose-600 text-base rounded-2xl tap-action">
+            <i class="ph ph-backspace"></i>
+          </button>
+        </div>
+
+        <div id="pinErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed text-center"></div>
+      </div>
+
+      <!-- VIEW 2 & 3: EMAIL / PASSWORD LOGIN OR REGISTER -->
+      <form id="authPassForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5 text-xs hidden">
+        <div id="authNameGroup" class="hidden">
+          <label class="block text-slate-500 mb-1">ชื่อเล่น / ชื่อเรียก</label>
+          <input type="text" id="authDisplayName" placeholder="ระบุชื่อของคุณ เช่น พี่โต้ง" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+        </div>
+
+        <div>
+          <label class="block text-slate-500 mb-1">อีเมล</label>
+          <input type="email" id="authEmail" required placeholder="name@example.com" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+        </div>
+
+        <div>
+          <label class="block text-slate-500 mb-1">รหัสผ่าน</label>
+          <input type="password" id="authPassword" required minlength="6" placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+        </div>
+
+        <div id="authPinSetupGroup" class="hidden">
+          <label class="block text-slate-500 mb-1">กำหนดรหัส PIN ด่วน (ตัวเลข 4-6 หลัก)</label>
+          <input type="password" id="authInitialPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="เช่น 1234 หรือ 123456" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+          <p class="text-[10px] text-slate-400 mt-1">ใช้สำหรับแตะเข้าใช้งานระบบอย่างรวดเร็วในครั้งต่อไป</p>
+        </div>
+
+        <div id="authErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed"></div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs transition tap-action flex items-center justify-center gap-1.5">
+          <i class="ph ph-sign-in text-base"></i>
+          <span>เข้าสู่ระบบ</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SUSPENDED ACCOUNT SCREEN -->
+  <div id="suspendedScreen" class="min-h-screen flex items-center justify-center p-4 bg-slate-50 hidden">
+    <div class="card p-6 w-full max-w-sm text-center space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center text-2xl mx-auto">
+        <i class="ph ph-prohibit"></i>
+      </div>
+      <div>
+        <h2 class="text-sm text-slate-800">บัญชีนี้ถูกระงับการใช้งาน</h2>
+        <p class="text-xs text-slate-400 mt-1">กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดการใช้งาน</p>
+      </div>
+      <button type="button" onclick="handleLogout()" class="px-4 py-2.5 border border-slate-200 text-slate-600 text-xs rounded-xl tap-action">
+        ออกจากระบบ
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="mainApp" class="flex-1 flex flex-col hidden pb-24 md:pb-8">
+
+    <!-- TOP APP BAR -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+      <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center text-base shadow-xs">
+            <i class="ph ph-wallet"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-800 text-xs sm:text-sm">Money Diary</span>
+              <span id="navRoleBadge" class="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200">user</span>
+            </div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[130px] sm:max-w-[200px]" id="navUserEmail">-</p>
+          </div>
+        </div>
+
+        <!-- Desktop/Tablet Nav Links & Actions -->
+        <div class="flex items-center gap-2">
+          <div class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl text-xs">
+            <button type="button" onclick="switchTab('record')" id="deskTabRecord" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action">บันทึก</button>
+            <button type="button" onclick="switchTab('history')" id="deskTabHistory" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ประวัติ</button>
+            <button type="button" onclick="switchTab('settings')" id="deskTabSettings" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ตั้งค่า PIN</button>
+            <button type="button" onclick="switchTab('admin')" id="deskTabAdmin" class="hidden px-3 py-1.5 rounded-lg text-indigo-700 hover:text-indigo-900 tap-action">แอดมิน</button>
+          </div>
+
+          <button type="button" onclick="handleLogout()" class="text-xs p-2 sm:px-2.5 sm:py-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-slate-50 tap-action flex items-center gap-1" title="ออกจากระบบ">
+            <i class="ph ph-sign-out text-base sm:text-sm"></i>
+            <span class="hidden sm:inline">ออกจากระบบ</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="max-w-4xl mx-auto px-3 sm:px-4 w-full mt-4 space-y-4 flex-1">
+
+      <!-- COMPACT SUMMARY OVERVIEW (ALWAYS VISIBLE) -->
+      <section class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div class="card p-3 sm:p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1">
+            <span class="text-[11px]">ยอดคงเหลือ</span>
+            <i class="ph ph-wallet text-xs text-emerald-600"></i>
+          </div>
+          <div class="text-lg sm:text-xl text-slate-800 truncate" id="dashBalance">฿0.00</div>
+          <div class="text-[10px] text-slate-400 truncate mt-0.5">สุทธิ</div>
+        </div>
+
+        <div class="card p-3 sm:p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1">
+            <span class="text-[11px]">รายรับ</span>
+            <i class="ph ph-arrow-down-left text-xs text-emerald-500"></i>
+          </div>
+          <div class="text-lg sm:text-xl text-emerald-600 truncate" id="dashIncome">฿0.00</div>
+          <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินเข้า</div>
+        </div>
+
+        <div class="card p-3 sm:p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1">
+            <span class="text-[11px]">รายจ่าย</span>
+            <i class="ph ph-arrow-up-right text-xs text-rose-500"></i>
+          </div>
+          <div class="text-lg sm:text-xl text-rose-600 truncate" id="dashExpense">฿0.00</div>
+          <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินออก</div>
+        </div>
+
+        <div class="card p-3 sm:p-4 shadow-xs">
+          <div class="flex items-center justify-between text-slate-400 mb-1">
+            <span class="text-[11px]">จ่ายวันนี้</span>
+            <i class="ph ph-calendar text-xs text-amber-500"></i>
+          </div>
+          <div class="text-lg sm:text-xl text-amber-600 truncate" id="dashTodayExpense">฿0.00</div>
+          <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashTodayDateLabel">วันนี้</div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 1: RECORD ENTRY ==================== -->
+      <section id="tabContentRecord" class="space-y-4">
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h2 class="text-slate-800 text-xs flex items-center gap-1.5">
+              <i class="ph ph-plus-circle text-emerald-600 text-base"></i> บันทึกรายการใหม่
+            </h2>
+            <span class="text-[11px] text-slate-400">บันทึกลงคลาวด์</span>
+          </div>
+
+          <!-- Type Switcher -->
+          <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl gap-1">
+            <button type="button" id="btnTypeExpense" onclick="setEntryType('expense')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action">
+              <i class="ph ph-minus-circle text-sm"></i> รายจ่าย
+            </button>
+            <button type="button" id="btnTypeIncome" onclick="setEntryType('income')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action">
+              <i class="ph ph-plus-circle text-sm"></i> รายรับ
+            </button>
+          </div>
+
+          <!-- Large Amount Input Field with Clear Button -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs text-slate-500">จำนวนเงิน (บาท)</label>
+              <span class="text-[11px] text-slate-400">แตะบวกเงินด่วนได้</span>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-xl">฿</span>
+              <input type="number" id="txAmount" inputmode="decimal" step="any" min="0" placeholder="0.00" class="w-full pl-9 pr-12 py-3 bg-slate-50 focus:bg-white border border-slate-200 rounded-2xl text-2xl text-slate-800 outline-none focus:border-emerald-500 transition-all">
+              <button type="button" onclick="clearAmount()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-300 hover:text-slate-500">
+                <i class="ph ph-x-circle text-2xl"></i>
+              </button>
+            </div>
+
+            <!-- Quick Add Chips -->
+            <div class="grid grid-cols-4 gap-2 mt-2">
+              <button type="button" onclick="quickAddAmount(20)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+20</button>
+              <button type="button" onclick="quickAddAmount(50)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+50</button>
+              <button type="button" onclick="quickAddAmount(100)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+100</button>
+              <button type="button" onclick="quickAddAmount(500)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+500</button>
+            </div>
+          </div>
+
+          <!-- Category Selector -->
+          <div>
+            <label class="block text-xs text-slate-500 mb-1.5">หมวดหมู่</label>
+            <div id="categoryContainer" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+          </div>
+
+          <!-- Note & Date Input -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">โน้ต / รายละเอียด</label>
+              <input type="text" id="txNote" placeholder="เช่น กาแฟเช้า ข้าวเที่ยง" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">วันที่</label>
+              <input type="date" id="txDate" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+            </div>
+          </div>
+
+          <!-- Big Save Button -->
+          <button type="button" id="saveTxBtn" onclick="handleSaveTransaction()" class="w-full py-3.5 bg-slate-900 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-2xl shadow-xs transition-colors flex items-center justify-center gap-2 tap-action">
+            <i class="ph ph-check text-base"></i>
+            <span>บันทึกรายการ</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: TRANSACTION HISTORY ==================== -->
+      <section id="tabContentHistory" class="space-y-4 hidden">
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-clock-counter-clockwise text-emerald-600 text-base"></i>
+              <h2 class="text-slate-800 text-xs">ประวัติรายการ</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="historyCountLabel" class="text-[11px] text-slate-400">0 รายการ</span>
+              <button type="button" onclick="exportUserCSV()" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
+                <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
+                <span class="hidden sm:inline">ส่งออก</span> Excel
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Controls -->
+          <div class="space-y-2">
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <i class="ph ph-magnifying-glass text-xs"></i>
+              </span>
+              <input type="text" id="filterSearch" oninput="renderUserHistory()" placeholder="ค้นหาหมวดหมู่หรือโน้ต..." class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex items-center bg-slate-100 p-0.5 rounded-xl text-[11px]">
+                <button type="button" onclick="setPeriodFilter('all')" id="btnPeriodAll" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">ทั้งหมด</button>
+                <button type="button" onclick="setPeriodFilter('today')" id="btnPeriodToday" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">วันนี้</button>
+                <button type="button" onclick="setPeriodFilter('week')" id="btnPeriodWeek" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">สัปดาห์นี้</button>
+                <button type="button" onclick="setPeriodFilter('month')" id="btnPeriodMonth" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs">เดือนนี้</button>
+              </div>
+
+              <select id="filterType" onchange="renderUserHistory()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-2.5 py-1.5 outline-none">
+                <option value="all">ทั้งหมด (รับ/จ่าย)</option>
+                <option value="expense">เฉพาะรายจ่าย</option>
+                <option value="income">เฉพาะรายรับ</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="userTxListContainer" class="space-y-2"></div>
+          <div id="userTxEmpty" class="py-8 text-center text-xs text-slate-400 hidden">ไม่มีรายการในช่วงเวลานี้</div>
+
+          <div class="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs text-slate-500">
+            <span>ผลรวมตามเงื่อนไข:</span>
+            <div class="flex gap-3">
+              <span>รับ: <span class="text-emerald-600" id="subtotalIncome">฿0.00</span></span>
+              <span>จ่าย: <span class="text-rose-600" id="subtotalExpense">฿0.00</span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: USER PIN SETTINGS ==================== -->
+      <section id="tabContentSettings" class="space-y-4 hidden">
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-key text-emerald-600 text-base"></i>
+              <h2 class="text-slate-800 text-xs">ตั้งค่ารหัส PIN ด่วน</h2>
+            </div>
+            <span class="text-[11px] text-slate-400">สำหรับเข้าใช้งานรวดเร็ว</span>
+          </div>
+
+          <div class="space-y-3 text-xs max-w-sm">
+            <div>
+              <label class="block text-slate-500 mb-1">รหัส PIN ปัจจุบันในระบบ</label>
+              <div class="flex items-center gap-2">
+                <span id="currentPinDisplay" class="font-mono text-sm tracking-widest px-3 py-2 bg-slate-100 rounded-xl text-slate-700">••••</span>
+                <button type="button" onclick="togglePinVisibility()" id="btnTogglePinEye" class="p-2 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 tap-action">
+                  <i class="ph ph-eye text-base"></i>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-500 mb-1">กำหนด PIN ใหม่ (ตัวเลข 4-6 หลัก)</label>
+              <input type="password" id="inputNewPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="ระบุตัวเลข เช่น 1234" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+            </div>
+
+            <button type="button" onclick="handleUpdateSelfPin()" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs transition tap-action flex items-center justify-center gap-1.5">
+              <i class="ph ph-check text-base"></i>
+              <span>บันทึก PIN ใหม่</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: ADMIN PANEL ==================== -->
+      <section id="tabContentAdmin" class="space-y-4 hidden">
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h2 class="text-slate-800 text-xs flex items-center gap-1.5">
+                <i class="ph ph-shield-check text-indigo-600 text-base"></i> จัดการสมาชิก (Admin Panel)
+              </h2>
+              <p class="text-[11px] text-slate-400">ตรวจสอบผู้ใช้งาน แก้ไขรหัส PIN ดูรายการ หรือลบสมาชิก</p>
+            </div>
+          </div>
+
+          <!-- Member Stats -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-indigo-50/50 p-2.5 sm:p-3 rounded-2xl border border-indigo-100 text-center">
+              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">สมาชิกทั้งหมด</span>
+              <span class="text-base sm:text-lg text-indigo-950" id="statTotalUsers">0</span>
+            </div>
+            <div class="bg-emerald-50/50 p-2.5 sm:p-3 rounded-2xl border border-emerald-100 text-center">
+              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">ใช้งานปกติ</span>
+              <span class="text-base sm:text-lg text-emerald-700" id="statActiveUsers">0</span>
+            </div>
+            <div class="bg-rose-50/50 p-2.5 sm:p-3 rounded-2xl border border-rose-100 text-center">
+              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">ถูกระงับ</span>
+              <span class="text-base sm:text-lg text-rose-700" id="statSuspendedUsers">0</span>
+            </div>
+          </div>
+
+          <!-- Members Responsive List Container -->
+          <div id="adminMembersContainer" class="space-y-2.5"></div>
+        </div>
+
+        <!-- Individual Ledger Inspection Card -->
+        <div id="adminInspectLedgerBox" class="card p-4 sm:p-5 space-y-4 border-indigo-200 shadow-xs hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base">
+                <i class="ph ph-receipt"></i>
+              </div>
+              <div>
+                <h3 class="text-slate-800 text-xs">
+                  รายการของ: <span id="inspectTargetName" class="text-indigo-700">-</span>
+                </h3>
+                <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[200px]" id="inspectTargetEmail">-</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="exportInspectCSV()" class="text-xs px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action flex items-center gap-1">
+                <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
+                <span>ส่งออก CSV</span>
+              </button>
+              <button type="button" onclick="closeAdminInspection()" class="text-xs px-2.5 py-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 tap-action">
+                ✕ ปิด
+              </button>
+            </div>
+          </div>
+
+          <!-- Individual Summary -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block mb-0.5">ยอดคงเหลือ</span>
+              <span class="text-sm sm:text-base text-slate-800 truncate block" id="inspectBalance">฿0.00</span>
+            </div>
+            <div class="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+              <span class="text-[10px] text-emerald-600 block mb-0.5">รายรับรวม</span>
+              <span class="text-sm sm:text-base text-emerald-700 truncate block" id="inspectIncome">฿0.00</span>
+            </div>
+            <div class="p-2.5 bg-rose-50/50 rounded-xl border border-rose-100">
+              <span class="text-[10px] text-rose-600 block mb-0.5">รายจ่ายรวม</span>
+              <span class="text-sm sm:text-base text-rose-700 truncate block" id="inspectExpense">฿0.00</span>
+            </div>
+            <div class="p-2.5 bg-amber-50/50 rounded-xl border border-amber-100">
+              <span class="text-[10px] text-amber-600 block mb-0.5">จ่ายวันนี้</span>
+              <span class="text-sm sm:text-base text-amber-700 truncate block" id="inspectTodayExpense">฿0.00</span>
+            </div>
+          </div>
+
+          <!-- Member Transaction Items -->
+          <div id="inspectTxListContainer" class="space-y-2"></div>
+          <div id="inspectTxEmpty" class="py-6 text-center text-xs text-slate-400 hidden">ไม่มีข้อมูลรายการของสมาชิกคนนี้</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-3 py-1.5 flex items-center justify-around shadow-lg">
+      <button type="button" onclick="switchTab('record')" id="botTabRecord" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action">
+        <i class="ph ph-plus-circle text-xl"></i>
+        <span class="text-[10px]">บันทึก</span>
+      </button>
+
+      <button type="button" onclick="switchTab('history')" id="botTabHistory" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
+        <i class="ph ph-clock-counter-clockwise text-xl"></i>
+        <span class="text-[10px]">ประวัติ</span>
+      </button>
+
+      <button type="button" onclick="switchTab('settings')" id="botTabSettings" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
+        <i class="ph ph-key text-xl"></i>
+        <span class="text-[10px]">ตั้งค่า PIN</span>
+      </button>
+
+      <button type="button" onclick="switchTab('admin')" id="botTabAdmin" class="hidden flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
+        <i class="ph ph-shield-check text-xl"></i>
+        <span class="text-[10px]">แอดมิน</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ADMIN EDIT PIN MODAL -->
+  <div id="adminPinModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="card p-5 w-full max-w-xs shadow-xl space-y-3">
+      <div class="flex items-center gap-2">
+        <i class="ph ph-key text-xl text-indigo-600"></i>
+        <h3 class="text-slate-800 text-sm">แก้ไข PIN สมาชิก</h3>
+      </div>
+      <p class="text-xs text-slate-500">
+        สมาชิก: <span id="adminModalUserName" class="text-indigo-700">-</span>
+      </p>
+      <div>
+        <label class="block text-slate-500 text-xs mb-1">รหัส PIN ใหม่ (4-6 หลัก)</label>
+        <input type="text" id="adminModalPinInput" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="เช่น 1234" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 text-slate-800 text-sm font-mono tracking-widest text-center">
+      </div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeAdminPinModal()" class="px-3.5 py-2 border border-slate-200 text-slate-600 text-xs rounded-xl tap-action">ยกเลิก</button>
+        <button type="button" onclick="saveAdminMemberPin()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-xl tap-action">บันทึก PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM CONFIRMATION MODAL -->
+  <div id="appDialog" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="card p-5 w-full max-w-xs shadow-xl space-y-3">
+      <div class="flex items-center gap-2">
+        <i class="ph ph-warning-circle text-xl text-rose-600" id="dialogIcon"></i>
+        <h3 id="dialogTitle" class="text-slate-800 text-sm">ยืนยันการทำรายการ</h3>
+      </div>
+      <p id="dialogMessage" class="text-xs text-slate-500 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeAppDialog()" class="px-3.5 py-2 border border-slate-200 text-slate-600 text-xs rounded-xl tap-action">ยกเลิก</button>
+        <button type="button" id="dialogConfirmBtn" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-xl tap-action">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-auto bg-slate-900 text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
+    <i class="ph ph-check-circle text-emerald-400 text-base" id="toastIcon"></i>
+    <span id="toastMessage">แจ้งเตือน</span>
+  </div>
+
+  <script>
+    // -----------------------------------------------------------------
+    // 1. FIREBASE CONFIGURATION & INITIALIZATION
+    // -----------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDZZmtoakybe_DnT6_FxZiieRMbuFxtFrw",
+      authDomain: "money-diary-37328.firebaseapp.com",
+      projectId: "money-diary-37328",
+      storageBucket: "money-diary-37328.firebasestorage.app",
+      messagingSenderId: "852654079681",
+      appId: "1:852654079681:web:ab80b1e7f5742ebe4f5e40",
+      measurementId: "G-GE0D8NCQ51"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // -----------------------------------------------------------------
+    // 2. CONSTANTS & APPLICATION STATE
+    // -----------------------------------------------------------------
+    const CATEGORIES = {
+      expense: [
+        { name: 'อาหาร', icon: '🍲' },
+        { name: 'กาแฟ/น้ำชง', icon: '☕' },
+        { name: 'ของใช้', icon: '🛍️' },
+        { name: 'เดินทาง', icon: '🚗' },
+        { name: 'ช้อปปิ้ง', icon: '📦' },
+        { name: 'บันเทิง', icon: '🎬' },
+        { name: 'บิล/ค่าน้ำไฟ', icon: '🏠' },
+        { name: 'สุขภาพ', icon: '💊' },
+        { name: 'อื่นๆ', icon: '✨' }
+      ],
+      income: [
+        { name: 'เงินเดือน', icon: '💼' },
+        { name: 'ค้าขาย', icon: '📈' },
+        { name: 'โบนัส', icon: '💵' },
+        { name: 'ของขวัญ', icon: '🎁' },
+        { name: 'อื่นๆ', icon: '💰' }
+      ]
+    };
+
+    let currentUser = null;
+    let currentUserProfile = null;
+    let currentEntryType = 'expense';
+    let currentCategory = CATEGORIES.expense[0];
+    let activePeriod = 'month';
+    let currentTab = 'record';
+    let userTransactions = [];
+    let unsubscribeUserTx = null;
+    let unsubscribeAdminUsers = null;
+    let inspectTransactions = [];
+    let currentInspectUid = null;
+
+    // PIN State
+    let enteredPin = '';
+    let publicUsersList = [];
+    let isPinVisible = false;
+    let adminEditingUser = null;
+
+    // -----------------------------------------------------------------
+    // 3. LIFECYCLE & AUTHENTICATION OBSERVER
+    // -----------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('txDate').valueAsDate = new Date();
+      document.getElementById('dashTodayDateLabel').innerText = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+      renderCategoryButtons();
+      loadPublicUsersForPin();
+
+      auth.onAuthStateChanged(async (user) => {
+        const loader = document.getElementById('appLoadingScreen');
+        const authScreen = document.getElementById('authScreen');
+        const mainApp = document.getElementById('mainApp');
+        const suspendedScreen = document.getElementById('suspendedScreen');
+
+        if (!user) {
+          currentUser = null;
+          currentUserProfile = null;
+          if (unsubscribeUserTx) unsubscribeUserTx();
+          if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+          authScreen.classList.remove('hidden');
+          mainApp.classList.add('hidden');
+          suspendedScreen.classList.add('hidden');
+          loader.classList.add('hidden');
+          loadPublicUsersForPin();
+          return;
+        }
+
+        currentUser = user;
+
+        try {
+          const userDocRef = db.collection('users').doc(user.uid);
+          const userSnap = await userDocRef.get();
+
+          let role = 'user';
+          let status = 'active';
+          let displayName = user.displayName || user.email.split('@')[0];
+
+          // Auto-promote fg6464@gmail.com or first user
+          if (user.email === 'fg6464@gmail.com') {
+            role = 'admin';
+          } else if (!userSnap.exists) {
+            const allUsersSnap = await db.collection('users').limit(1).get();
+            if (allUsersSnap.empty) {
+              role = 'admin';
+            }
+          }
+
+          if (!userSnap.exists) {
+            await userDocRef.set({
+              uid: user.uid,
+              email: user.email,
+              displayName: displayName,
+              role: role,
+              status: status,
+              pin: '1234', // Default PIN
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+              loginCount: 1
+            });
+            currentUserProfile = { uid: user.uid, email: user.email, displayName, role, status, pin: '1234' };
+          } else {
+            const existingData = userSnap.data();
+            if (user.email === 'fg6464@gmail.com' && existingData.role !== 'admin') {
+              await userDocRef.update({ role: 'admin' });
+              existingData.role = 'admin';
+            }
+
+            // Ensure pin field exists
+            if (!existingData.pin) {
+              await userDocRef.update({ pin: '1234' });
+              existingData.pin = '1234';
+            }
+
+            await userDocRef.update({
+              lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+              loginCount: firebase.firestore.FieldValue.increment(1)
+            });
+
+            currentUserProfile = existingData;
+          }
+
+          if (currentUserProfile.status === 'suspended') {
+            authScreen.classList.add('hidden');
+            mainApp.classList.add('hidden');
+            suspendedScreen.classList.remove('hidden');
+            loader.classList.add('hidden');
+            return;
+          }
+
+          // Remember last user email for quick PIN selection
+          try {
+            sessionStorage.setItem('last_money_diary_email', user.email);
+          } catch (e) {}
+
+          // Update Top Navbar Profile & Badges
+          document.getElementById('navUserEmail').innerText = `${currentUserProfile.displayName || 'ฉัน'} (${user.email})`;
+          const navBadge = document.getElementById('navRoleBadge');
+          const botTabAdmin = document.getElementById('botTabAdmin');
+          const deskTabAdmin = document.getElementById('deskTabAdmin');
+
+          if (currentUserProfile.role === 'admin') {
+            navBadge.innerText = 'Admin';
+            navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200';
+            botTabAdmin.classList.remove('hidden');
+            deskTabAdmin.classList.remove('hidden');
+            listenToAdminUsers();
+          } else {
+            navBadge.innerText = 'User';
+            navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+            botTabAdmin.classList.add('hidden');
+            deskTabAdmin.classList.add('hidden');
+          }
+
+          authScreen.classList.add('hidden');
+          suspendedScreen.classList.add('hidden');
+          mainApp.classList.remove('hidden');
+
+          updateCurrentPinDisplay();
+          listenToUserTransactions(user.uid);
+          switchTab('record');
+        } catch (err) {
+          console.error("Auth init error:", err);
+          showToast('การเชื่อมต่อมีปัญหา: ' + err.message, 'warning');
+        } finally {
+          loader.classList.add('hidden');
+        }
+      });
+    });
+
+    // -----------------------------------------------------------------
+    // 4. PIN QUICK-LOGIN LOGIC
+    // -----------------------------------------------------------------
+    async function loadPublicUsersForPin() {
+      try {
+        const snap = await db.collection('users').get();
+        publicUsersList = [];
+        const select = document.getElementById('pinUserSelect');
+        select.innerHTML = '';
+
+        if (snap.empty) {
+          select.innerHTML = '<option value="">ยังไม่มีสมาชิกในระบบ (กรุณาลงทะเบียน)</option>';
+          return;
+        }
+
+        let savedEmail = '';
+        try { savedEmail = sessionStorage.getItem('last_money_diary_email') || ''; } catch (e) {}
+
+        snap.forEach(doc => {
+          const u = doc.data();
+          publicUsersList.push({ id: doc.id, ...u });
+          const opt = document.createElement('option');
+          opt.value = u.email;
+          opt.innerText = `${u.displayName || 'สมาชิก'} (${u.email})`;
+          if (savedEmail && u.email === savedEmail) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+
+        onPinUserChanged();
+      } catch (err) {
+        console.error("Error loading users for PIN:", err);
+      }
+    }
+
+    function onPinUserChanged() {
+      clearPin();
+      const errBox = document.getElementById('pinErrorMsg');
+      errBox.classList.add('hidden');
+    }
+
+    function pressPinDigit(digit) {
+      if (enteredPin.length >= 6) return;
+      enteredPin += digit;
+      updatePinDots();
+
+      const selectedEmail = document.getElementById('pinUserSelect').value;
+      const targetUser = publicUsersList.find(u => u.email === selectedEmail);
+      const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
+
+      if (enteredPin.length === targetPinLen || enteredPin.length === 6) {
+        setTimeout(verifyAndLoginWithPin, 100);
+      }
+    }
+
+    function deletePinDigit() {
+      if (enteredPin.length > 0) {
+        enteredPin = enteredPin.slice(0, -1);
+        updatePinDots();
+      }
+    }
+
+    function clearPin() {
+      enteredPin = '';
+      updatePinDots();
+    }
+
+    function updatePinDots() {
+      const selectedEmail = document.getElementById('pinUserSelect').value;
+      const targetUser = publicUsersList.find(u => u.email === selectedEmail);
+      const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
+
+      const container = document.getElementById('pinDotsContainer');
+      container.innerHTML = '';
+      for (let i = 0; i < targetPinLen; i++) {
+        const dot = document.createElement('div');
+        dot.className = `pin-dot ${i < enteredPin.length ? 'filled' : ''}`;
+        container.appendChild(dot);
+      }
+    }
+
+    async function verifyAndLoginWithPin() {
+      const selectedEmail = document.getElementById('pinUserSelect').value;
+      const errBox = document.getElementById('pinErrorMsg');
+      errBox.classList.add('hidden');
+
+      if (!selectedEmail) {
+        errBox.innerText = 'กรุณาเลือกบัญชีผู้ใช้';
+        errBox.classList.remove('hidden');
+        clearPin();
+        return;
+      }
+
+      const targetUser = publicUsersList.find(u => u.email === selectedEmail);
+      if (!targetUser) {
+        errBox.innerText = 'ไม่พบข้อมูลผู้ใช้';
+        errBox.classList.remove('hidden');
+        clearPin();
+        return;
+      }
+
+      const userPin = targetUser.pin || '1234';
+
+      if (enteredPin === userPin) {
+        // Authenticate user session
+        showToast(`เข้าสู่ระบบสำเร็จ: ${targetUser.displayName || targetUser.email}`);
+        
+        let pwd = '';
+        try { pwd = sessionStorage.getItem(`_pwd_${selectedEmail}`); } catch (e) {}
+
+        if (pwd) {
+          try {
+            await auth.signInWithEmailAndPassword(selectedEmail, pwd);
+            clearPin();
+            return;
+          } catch (e) {
+            console.warn("Direct pass fail, falling back to cached profile", e);
+          }
+        }
+
+        // Seamless Quick-Access Fallback for PIN mode
+        currentUser = { uid: targetUser.uid, email: targetUser.email, displayName: targetUser.displayName };
+        currentUserProfile = targetUser;
+
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('navUserEmail').innerText = `${targetUser.displayName || 'ฉัน'} (${targetUser.email})`;
+
+        const navBadge = document.getElementById('navRoleBadge');
+        const botTabAdmin = document.getElementById('botTabAdmin');
+        const deskTabAdmin = document.getElementById('deskTabAdmin');
+
+        if (targetUser.role === 'admin') {
+          navBadge.innerText = 'Admin';
+          navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200';
+          botTabAdmin.classList.remove('hidden');
+          deskTabAdmin.classList.remove('hidden');
+          listenToAdminUsers();
+        } else {
+          navBadge.innerText = 'User';
+          navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+          botTabAdmin.classList.add('hidden');
+          deskTabAdmin.classList.add('hidden');
+        }
+
+        updateCurrentPinDisplay();
+        listenToUserTransactions(targetUser.uid);
+        switchTab('record');
+        clearPin();
+      } else {
+        errBox.innerText = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+        errBox.classList.remove('hidden');
+        clearPin();
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 5. AUTH VIEW SWITCHER (PIN / LOGIN / REGISTER)
+    // -----------------------------------------------------------------
+    let currentAuthMode = 'pin';
+    function switchAuthView(mode) {
+      currentAuthMode = mode;
+      const tabPin = document.getElementById('tabBtnPin');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+      const viewPin = document.getElementById('authViewPin');
+      const viewForm = document.getElementById('authPassForm');
+      const nameGroup = document.getElementById('authNameGroup');
+      const pinSetupGroup = document.getElementById('authPinSetupGroup');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const errBox = document.getElementById('authErrorMsg');
+      const pinErrBox = document.getElementById('pinErrorMsg');
+
+      errBox.classList.add('hidden');
+      pinErrBox.classList.add('hidden');
+
+      tabPin.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
+      tabLogin.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
+      tabReg.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
+
+      if (mode === 'pin') {
+        tabPin.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        viewPin.classList.remove('hidden');
+        viewForm.classList.add('hidden');
+        clearPin();
+        loadPublicUsersForPin();
+      } else if (mode === 'login') {
+        tabLogin.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        viewPin.classList.add('hidden');
+        viewForm.classList.remove('hidden');
+        nameGroup.classList.add('hidden');
+        pinSetupGroup.classList.add('hidden');
+        submitBtn.innerHTML = '<i class="ph ph-sign-in text-base"></i><span>เข้าสู่ระบบด้วยรหัสผ่าน</span>';
+      } else if (mode === 'register') {
+        tabReg.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        viewPin.classList.add('hidden');
+        viewForm.classList.remove('hidden');
+        nameGroup.classList.remove('hidden');
+        pinSetupGroup.classList.remove('hidden');
+        submitBtn.innerHTML = '<i class="ph ph-user-plus text-base"></i><span>ลงทะเบียนบัญชีใหม่</span>';
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const displayName = document.getElementById('authDisplayName').value.trim();
+      const initialPin = (document.getElementById('authInitialPin').value.trim()) || '1234';
+      const errBox = document.getElementById('authErrorMsg');
+      const submitBtn = document.getElementById('authSubmitBtn');
+
+      errBox.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-70');
+
+      try {
+        if (currentAuthMode === 'register') {
+          const cred = await auth.createUserWithEmailAndPassword(email, password);
+          if (displayName) {
+            await cred.user.updateProfile({ displayName: displayName });
+          }
+          await db.collection('users').doc(cred.user.uid).set({
+            uid: cred.user.uid,
+            email: email,
+            displayName: displayName || email.split('@')[0],
+            role: email === 'fg6464@gmail.com' ? 'admin' : 'user',
+            status: 'active',
+            pin: initialPin,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+            loginCount: 1
+          });
+          try { sessionStorage.setItem(`_pwd_${email}`, password); } catch (e) {}
+        } else {
+          await auth.signInWithEmailAndPassword(email, password);
+          try { sessionStorage.setItem(`_pwd_${email}`, password); } catch (e) {}
+        }
+      } catch (err) {
+        errBox.innerText = `ข้อผิดพลาด: ${err.message}`;
+        errBox.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70');
+      }
+    }
+
+    function handleLogout() {
+      auth.signOut();
+      switchAuthView('pin');
+    }
+
+    // -----------------------------------------------------------------
+    // 6. USER PIN SETTINGS
+    // -----------------------------------------------------------------
+    function updateCurrentPinDisplay() {
+      const pinDisp = document.getElementById('currentPinDisplay');
+      const pin = (currentUserProfile && currentUserProfile.pin) ? currentUserProfile.pin : '1234';
+      if (isPinVisible) {
+        pinDisp.innerText = pin;
+      } else {
+        pinDisp.innerText = '•'.repeat(pin.length);
+      }
+    }
+
+    function togglePinVisibility() {
+      isPinVisible = !isPinVisible;
+      const eyeBtn = document.getElementById('btnTogglePinEye');
+      eyeBtn.innerHTML = isPinVisible ? '<i class="ph ph-eye-slash text-base"></i>' : '<i class="ph ph-eye text-base"></i>';
+      updateCurrentPinDisplay();
+    }
+
+    async function handleUpdateSelfPin() {
+      if (!currentUser) return;
+      const input = document.getElementById('inputNewPin');
+      const newPin = input.value.trim();
+
+      if (!/^\d{4,6}$/.test(newPin)) {
+        showToast('กรุณาระบุรหัส PIN เป็นตัวเลข 4 หรือ 6 หลัก', 'warning');
+        input.focus();
+        return;
+      }
+
+      try {
+        await db.collection('users').doc(currentUser.uid).update({ pin: newPin });
+        if (currentUserProfile) currentUserProfile.pin = newPin;
+        updateCurrentPinDisplay();
+        input.value = '';
+        showToast('อัปเดตรหัส PIN เรียบร้อยแล้ว');
+      } catch (err) {
+        showToast('อัปเดตไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 7. NAVIGATION TAB SWITCHER
+    // -----------------------------------------------------------------
+    function switchTab(tab) {
+      currentTab = tab;
+      const recContent = document.getElementById('tabContentRecord');
+      const hisContent = document.getElementById('tabContentHistory');
+      const setContent = document.getElementById('tabContentSettings');
+      const admContent = document.getElementById('tabContentAdmin');
+
+      recContent.classList.add('hidden');
+      hisContent.classList.add('hidden');
+      setContent.classList.add('hidden');
+      admContent.classList.add('hidden');
+
+      const botRec = document.getElementById('botTabRecord');
+      const botHis = document.getElementById('botTabHistory');
+      const botSet = document.getElementById('botTabSettings');
+      const botAdm = document.getElementById('botTabAdmin');
+
+      botRec.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
+      botHis.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
+      botSet.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
+      botAdm.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
+
+      const dRec = document.getElementById('deskTabRecord');
+      const dHis = document.getElementById('deskTabHistory');
+      const dSet = document.getElementById('deskTabSettings');
+      const dAdm = document.getElementById('deskTabAdmin');
+
+      dRec.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+      dHis.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+      dSet.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+      dAdm.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+
+      if (tab === 'record') {
+        recContent.classList.remove('hidden');
+        botRec.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
+        dRec.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
+      } else if (tab === 'history') {
+        hisContent.classList.remove('hidden');
+        botHis.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
+        dHis.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
+        renderUserHistory();
+      } else if (tab === 'settings') {
+        setContent.classList.remove('hidden');
+        botSet.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
+        dSet.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
+        updateCurrentPinDisplay();
+      } else if (tab === 'admin') {
+        admContent.classList.remove('hidden');
+        botAdm.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-indigo-600 tap-action';
+        dAdm.className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-xs tap-action';
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // -----------------------------------------------------------------
+    // 8. RECORD FORM & CATEGORIES
+    // -----------------------------------------------------------------
+    function renderCategoryButtons() {
+      const container = document.getElementById('categoryContainer');
+      container.innerHTML = '';
+      const list = CATEGORIES[currentEntryType];
+
+      list.forEach(cat => {
+        const isSelected = currentCategory && currentCategory.name === cat.name;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          currentCategory = cat;
+          renderCategoryButtons();
+        };
+        btn.className = `p-2 sm:p-2.5 rounded-2xl flex flex-col items-center justify-center gap-0.5 border text-center transition-all tap-action ${
+          isSelected
+            ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 ring-1 ring-emerald-500/40'
+            : 'border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600'
+        }`;
+        btn.innerHTML = `
+          <span class="text-xl sm:text-2xl">${cat.icon}</span>
+          <span class="text-[11px] truncate w-full">${cat.name}</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function setEntryType(type) {
+      currentEntryType = type;
+      const expBtn = document.getElementById('btnTypeExpense');
+      const incBtn = document.getElementById('btnTypeIncome');
+
+      if (type === 'expense') {
+        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action';
+        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        currentCategory = CATEGORIES.expense[0];
+      } else {
+        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-emerald-600 shadow-xs tap-action';
+        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        currentCategory = CATEGORIES.income[0];
+      }
+      renderCategoryButtons();
+    }
+
+    function quickAddAmount(num) {
+      const el = document.getElementById('txAmount');
+      const val = parseFloat(el.value) || 0;
+      el.value = (val + num).toFixed(val % 1 === 0 && num % 1 === 0 ? 0 : 2);
+    }
+
+    function clearAmount() {
+      const el = document.getElementById('txAmount');
+      el.value = '';
+      el.focus();
+    }
+
+    async function handleSaveTransaction() {
+      if (!currentUser) return;
+      const amtInput = document.getElementById('txAmount');
+      const noteInput = document.getElementById('txNote');
+      const dateInput = document.getElementById('txDate');
+      const saveBtn = document.getElementById('saveTxBtn');
+
+      const amount = parseFloat(amtInput.value);
+      if (!amount || amount <= 0) {
+        showToast('กรุณากรอกจำนวนเงินให้ถูกต้อง', 'warning');
+        amtInput.focus();
+        return;
+      }
+      if (!dateInput.value) {
+        showToast('กรุณาเลือกวันที่', 'warning');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'กำลังบันทึกลงคลาวด์...';
+
+      try {
+        await db.collection('users').doc(currentUser.uid).collection('transactions').add({
+          type: currentEntryType,
+          amount: amount,
+          category: currentCategory.name,
+          icon: currentCategory.icon,
+          note: noteInput.value.trim(),
+          date: dateInput.value,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        amtInput.value = '';
+        noteInput.value = '';
+        showToast(currentEntryType === 'expense' ? 'บันทึกรายจ่ายเรียบร้อย' : 'บันทึกรายรับเรียบร้อย');
+      } catch (err) {
+        showToast('บันทึกไม่สำเร็จ: ' + err.message, 'warning');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ph ph-check text-base"></i><span>บันทึกรายการ</span>';
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 9. TRANSACTION LISTENER & HISTORY CARDS
+    // -----------------------------------------------------------------
+    function listenToUserTransactions(uid) {
+      if (unsubscribeUserTx) unsubscribeUserTx();
+      unsubscribeUserTx = db.collection('users').doc(uid).collection('transactions')
+        .orderBy('date', 'desc')
+        .onSnapshot(snapshot => {
+          userTransactions = [];
+          snapshot.forEach(doc => {
+            userTransactions.push({ id: doc.id, ...doc.data() });
+          });
+          updateUserSummary();
+          renderUserHistory();
+        }, err => {
+          console.error("Tx listener error:", err);
+          showToast('โหลดรายการไม่สำเร็จ: ' + err.message, 'warning');
+        });
+    }
+
+    function updateUserSummary() {
+      let income = 0;
+      let expense = 0;
+      let todayExpense = 0;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      userTransactions.forEach(t => {
+        const val = parseFloat(t.amount) || 0;
+        if (t.type === 'income') {
+          income += val;
+        } else {
+          expense += val;
+          if (t.date === todayStr) todayExpense += val;
+        }
+      });
+
+      const balance = income - expense;
+      document.getElementById('dashBalance').innerText = '฿' + balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('dashIncome').innerText = '฿' + income.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('dashExpense').innerText = '฿' + expense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('dashTodayExpense').innerText = '฿' + todayExpense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function setPeriodFilter(p) {
+      activePeriod = p;
+      ['all', 'today', 'week', 'month'].forEach(k => {
+        const id = 'btnPeriod' + k.charAt(0).toUpperCase() + k.slice(1);
+        const b = document.getElementById(id);
+        if (k === p) {
+          b.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs';
+        } else {
+          b.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800';
+        }
+      });
+      renderUserHistory();
+    }
+
+    function renderUserHistory() {
+      const keyword = (document.getElementById('filterSearch')?.value || '').trim().toLowerCase();
+      const typeFilter = document.getElementById('filterType')?.value || 'all';
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const d = new Date(now);
+      const dayOfWeek = d.getDay() || 7;
+      d.setDate(d.getDate() - dayOfWeek + 1);
+      const mondayStr = d.toISOString().split('T')[0];
+      const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      const filtered = userTransactions.filter(item => {
+        if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+        if (activePeriod === 'today' && item.date !== todayStr) return false;
+        if (activePeriod === 'week' && (item.date < mondayStr || item.date > todayStr)) return false;
+        if (activePeriod === 'month' && (!item.date || !item.date.startsWith(monthPrefix))) return false;
+
+        if (keyword) {
+          const matchCat = (item.category || '').toLowerCase().includes(keyword);
+          const matchNote = (item.note || '').toLowerCase().includes(keyword);
+          if (!matchCat && !matchNote) return false;
+        }
+        return true;
+      });
+
+      const container = document.getElementById('userTxListContainer');
+      const emptyEl = document.getElementById('userTxEmpty');
+      const countEl = document.getElementById('historyCountLabel');
+      const subIncEl = document.getElementById('subtotalIncome');
+      const subExpEl = document.getElementById('subtotalExpense');
+
+      countEl.innerText = `${filtered.length} รายการ`;
+      container.innerHTML = '';
+
+      let subInc = 0;
+      let subExp = 0;
+
+      if (filtered.length === 0) {
+        emptyEl.classList.remove('hidden');
+        subIncEl.innerText = '฿0.00';
+        subExpEl.innerText = '฿0.00';
+        return;
+      }
+      emptyEl.classList.add('hidden');
+
+      filtered.forEach(item => {
+        const isExp = item.type === 'expense';
+        const amt = parseFloat(item.amount) || 0;
+        if (isExp) subExp += amt; else subInc += amt;
+
+        const card = document.createElement('div');
+        card.className = 'p-3 bg-white hover:bg-slate-50/80 border border-slate-100 rounded-2xl flex items-center justify-between gap-3 transition-colors';
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+              ${item.icon || (isExp ? '🍲' : '💵')}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                  ${isExp ? 'จ่าย' : 'รับ'}
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="text-right">
+              <div class="text-xs sm:text-sm whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">
+                ${isExp ? '-' : '+'}฿${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span class="text-[10px] text-slate-400 block">${item.date || '-'}</span>
+            </div>
+            <button type="button" onclick="handleDeleteTransaction('${item.id}')" class="p-2 text-slate-300 hover:text-rose-600 rounded-xl hover:bg-rose-50 tap-action" title="ลบรายการ">
+              <i class="ph ph-trash text-base"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      subIncEl.innerText = '฿' + subInc.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      subExpEl.innerText = '฿' + subExp.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function handleDeleteTransaction(id) {
+      showAppDialog('ยืนยันการลบรายการ', 'ต้องการลบรายการนี้ออกจากฐานข้อมูลใช่หรือไม่?', async () => {
+        try {
+          await db.collection('users').doc(currentUser.uid).collection('transactions').doc(id).delete();
+          showToast('ลบรายการเรียบร้อย');
+        } catch (err) {
+          showToast('ลบรายการไม่สำเร็จ: ' + err.message, 'warning');
+        }
+      });
+    }
+
+    function exportUserCSV() {
+      if (userTransactions.length === 0) {
+        showToast('ไม่มีรายการให้ส่งออก', 'warning');
+        return;
+      }
+      let csv = '\uFEFFวันที่,ประเภท,หมวดหมู่,โน้ต,จำนวนเงิน(บาท)\n';
+      userTransactions.forEach(t => {
+        const typeText = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
+        const safeNote = (t.note || '').replace(/"/g, '""');
+        csv += `"${t.date || ''}","${typeText}","${t.category || ''}","${safeNote}","${t.amount || 0}"\n`;
+      });
+      const name = (currentUserProfile?.displayName || 'user').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+      const today = new Date().toISOString().split('T')[0];
+      downloadCsv(csv, `money_diary_${name}_${today}.csv`);
+      showToast('ส่งออก Excel สำเร็จ');
+    }
+
+    // -----------------------------------------------------------------
+    // 10. ADMIN PANEL: MEMBER MANAGEMENT & PIN EDITING
+    // -----------------------------------------------------------------
+    function listenToAdminUsers() {
+      if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+      unsubscribeAdminUsers = db.collection('users').onSnapshot(snapshot => {
+        const container = document.getElementById('adminMembersContainer');
+        container.innerHTML = '';
+
+        let total = 0;
+        let active = 0;
+        let suspended = 0;
+
+        snapshot.forEach(doc => {
+          total++;
+          const u = { id: doc.id, ...doc.data() };
+          const isSuspended = u.status === 'suspended';
+          const isAdmin = u.role === 'admin';
+          const isSelf = currentUser && doc.id === currentUser.uid;
+          if (isSuspended) suspended++; else active++;
+
+          let lastLoginStr = '-';
+          if (u.lastLoginAt) {
+            try {
+              lastLoginStr = new Date(u.lastLoginAt.toDate()).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+              lastLoginStr = '-';
+            }
+          }
+
+          const card = document.createElement('div');
+          card.className = 'p-3 bg-white border border-slate-200/80 rounded-2xl space-y-2.5';
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs text-slate-800 flex items-center gap-1.5 flex-wrap">
+                  <span class="truncate">${escapeHtml(u.displayName || '-')}</span>
+                  ${isSelf ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200">คุณ</span>' : ''}
+                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isAdmin ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-100 text-slate-600'}">
+                    ${isAdmin ? 'Admin' : 'User'}
+                  </span>
+                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                    ${isSuspended ? 'ถูกระงับ' : 'ปกติ'}
+                  </span>
+                  <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 font-mono text-slate-600 border border-slate-200">
+                    PIN: ${u.pin || '1234'}
+                  </span>
+                </div>
+                <p class="text-[10px] text-slate-400 font-mono truncate mt-0.5">${escapeHtml(u.email || '-')}</p>
+              </div>
+              <div class="text-right text-[10px] text-slate-400 shrink-0">
+                <span>เข้าใช้ ${u.loginCount || 1} ครั้ง</span>
+                <span class="block">${lastLoginStr}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div class="flex items-center gap-1.5 pt-1 border-t border-slate-100 overflow-x-auto text-xs">
+              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${escapeHtml(u.displayName || u.email)}', '${escapeHtml(u.email)}')" class="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 tap-action flex items-center justify-center gap-1 text-[11px] whitespace-nowrap">
+                <i class="ph ph-receipt"></i>
+                <span>ดูรายการ</span>
+              </button>
+
+              <button type="button" onclick="openAdminPinModal('${u.id}', '${escapeHtml(u.displayName || u.email)}', '${u.pin || '1234'}')" class="py-1.5 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 tap-action text-[11px] whitespace-nowrap flex items-center gap-1">
+                <i class="ph ph-key"></i>
+                <span>แก้ PIN</span>
+              </button>
+
+              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action text-[11px] whitespace-nowrap">
+                ${isAdmin ? 'ลดเป็น User' : 'ตั้ง Admin'}
+              </button>
+
+              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="py-1.5 px-2.5 rounded-xl border tap-action text-[11px] whitespace-nowrap ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'}">
+                ${isSuspended ? 'ปลดบล็อก' : 'ระงับ'}
+              </button>
+
+              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${escapeHtml(u.displayName || u.email)}')" class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 tap-action text-[11px] whitespace-nowrap ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled title="ไม่สามารถลบบัญชีตัวเองได้"' : 'title="ลบสมาชิก"'}>
+                <i class="ph ph-trash"></i>
+                <span>ลบ</span>
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        document.getElementById('statTotalUsers').innerText = total;
+        document.getElementById('statActiveUsers').innerText = active;
+        document.getElementById('statSuspendedUsers').innerText = suspended;
+      }, err => {
+        console.error("Admin user listener error:", err);
+      });
+    }
+
+    function openAdminPinModal(uid, name, currentPin) {
+      adminEditingUser = { uid, name };
+      document.getElementById('adminModalUserName').innerText = name;
+      document.getElementById('adminModalPinInput').value = currentPin;
+      document.getElementById('adminPinModal').classList.remove('hidden');
+      document.getElementById('adminModalPinInput').focus();
+    }
+
+    function closeAdminPinModal() {
+      document.getElementById('adminPinModal').classList.add('hidden');
+      adminEditingUser = null;
+    }
+
+    async function saveAdminMemberPin() {
+      if (!adminEditingUser) return;
+      const input = document.getElementById('adminModalPinInput');
+      const newPin = input.value.trim();
+
+      if (!/^\d{4,6}$/.test(newPin)) {
+        showToast('กรุณาระบุ PIN เป็นตัวเลข 4 หรือ 6 หลัก', 'warning');
+        input.focus();
+        return;
+      }
+
+      try {
+        await db.collection('users').doc(adminEditingUser.uid).update({ pin: newPin });
+        showToast(`อัปเดต PIN ของ ${adminEditingUser.name} เรียบร้อยแล้ว`);
+        closeAdminPinModal();
+      } catch (err) {
+        showToast('อัปเดต PIN ไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    async function toggleAdminRole(uid, currentRole) {
+      if (uid === currentUser.uid) {
+        showToast('ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้', 'warning');
+        return;
+      }
+      const newRole = currentRole === 'admin' ? 'user' : 'admin';
+      try {
+        await db.collection('users').doc(uid).update({ role: newRole });
+        showToast(`เปลี่ยนสิทธิ์เป็น ${newRole} สำเร็จ`);
+      } catch (err) {
+        showToast('เปลี่ยนสิทธิ์ไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    async function toggleAdminStatus(uid, currentStatus) {
+      if (uid === currentUser.uid) {
+        showToast('ไม่สามารถระงับบัญชีของตัวเองได้', 'warning');
+        return;
+      }
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      try {
+        await db.collection('users').doc(uid).update({ status: newStatus });
+        showToast(newStatus === 'active' ? 'ปลดระงับบัญชีเรียบร้อย' : 'ระงับบัญชีเรียบร้อย');
+      } catch (err) {
+        showToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    function deleteUserByAdmin(uid, name) {
+      if (uid === currentUser.uid) {
+        showToast('ไม่สามารถลบบัญชีของตัวเองได้', 'warning');
+        return;
+      }
+
+      showAppDialog(
+        'ยืนยันการลบสมาชิกถาวร',
+        `ต้องการลบสมาชิก "${name}" ออกจากระบบใช่หรือไม่? ข้อมูลโปรไฟล์และประวัติรายรับ-รายจ่ายทั้งหมดจะถูกลบออกจากฐานข้อมูลอย่างถาวร`,
+        async () => {
+          try {
+            showToast('กำลังลบข้อมูลสมาชิกและรายการทั้งหมด...');
+
+            const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+            const batch = db.batch();
+            txSnap.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            await db.collection('users').doc(uid).delete();
+
+            if (currentInspectUid === uid) {
+              closeAdminInspection();
+            }
+
+            showToast(`ลบสมาชิก "${name}" เรียบร้อยแล้ว`);
+          } catch (err) {
+            console.error("Delete user error:", err);
+            showToast('ลบสมาชิกไม่สำเร็จ: ' + err.message, 'warning');
+          }
+        }
+      );
+    }
+
+    async function inspectMemberTransactions(uid, name, email) {
+      currentInspectUid = uid;
+      const box = document.getElementById('adminInspectLedgerBox');
+      const targetNameEl = document.getElementById('inspectTargetName');
+      const targetEmailEl = document.getElementById('inspectTargetEmail');
+      const container = document.getElementById('inspectTxListContainer');
+      const emptyEl = document.getElementById('inspectTxEmpty');
+
+      targetNameEl.innerText = name;
+      targetEmailEl.innerText = email;
+      box.classList.remove('hidden');
+
+      container.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">กำลังดึงข้อมูลรายการ...</div>';
+      emptyEl.classList.add('hidden');
+
+      box.scrollIntoView({ behavior: 'smooth' });
+
+      try {
+        const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('date', 'desc').get();
+        inspectTransactions = [];
+        let income = 0;
+        let expense = 0;
+        let todayExpense = 0;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        snap.forEach(doc => {
+          const item = { id: doc.id, ...doc.data() };
+          inspectTransactions.push(item);
+          const val = parseFloat(item.amount) || 0;
+          if (item.type === 'income') {
+            income += val;
+          } else {
+            expense += val;
+            if (item.date === todayStr) todayExpense += val;
+          }
+        });
+
+        const balance = income - expense;
+        document.getElementById('inspectBalance').innerText = '฿' + balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('inspectIncome').innerText = '฿' + income.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('inspectExpense').innerText = '฿' + expense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('inspectTodayExpense').innerText = '฿' + todayExpense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        container.innerHTML = '';
+        if (inspectTransactions.length === 0) {
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        inspectTransactions.forEach(item => {
+          const isExp = item.type === 'expense';
+          const amt = parseFloat(item.amount) || 0;
+
+          const card = document.createElement('div');
+          card.className = 'p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-lg shrink-0 ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                ${item.icon || (isExp ? '🍲' : '💵')}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
+                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                    ${isExp ? 'จ่าย' : 'รับ'}
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-xs whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">
+                ${isExp ? '-' : '+'}฿${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span class="text-[10px] text-slate-400 block">${item.date || '-'}</span>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        container.innerHTML = `<div class="py-6 text-center text-xs text-rose-500">เกิดข้อผิดพลาด: ${err.message}</div>`;
+      }
+    }
+
+    function closeAdminInspection() {
+      document.getElementById('adminInspectLedgerBox').classList.add('hidden');
+      currentInspectUid = null;
+      inspectTransactions = [];
+    }
+
+    function exportInspectCSV() {
+      if (inspectTransactions.length === 0) {
+        showToast('ไม่มีรายการให้ส่งออก', 'warning');
+        return;
+      }
+      let csv = '\uFEFFวันที่,ประเภท,หมวดหมู่,โน้ต,จำนวนเงิน(บาท)\n';
+      inspectTransactions.forEach(t => {
+        const typeText = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
+        const safeNote = (t.note || '').replace(/"/g, '""');
+        csv += `"${t.date || ''}","${typeText}","${t.category || ''}","${safeNote}","${t.amount || 0}"\n`;
+      });
+      const name = (document.getElementById('inspectTargetName').innerText || 'member').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+      const today = new Date().toISOString().split('T')[0];
+      downloadCsv(csv, `ledger_${name}_${today}.csv`);
+      showToast('ส่งออก CSV ของสมาชิกเรียบร้อย');
+    }
+
+    // -----------------------------------------------------------------
+    // 11. UTILITIES: CSV, DIALOG, TOAST, ESCAPE
+    // -----------------------------------------------------------------
+    function downloadCsv(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function showToast(msg, type = 'success') {
+      const bar = document.getElementById('toastNotification');
+      const text = document.getElementById('toastMessage');
+      const icon = document.getElementById('toastIcon');
+
+      text.innerText = msg;
+      if (type === 'warning') {
+        icon.className = 'ph ph-warning-circle text-amber-400 text-base';
+      } else {
+        icon.className = 'ph ph-check-circle text-emerald-400 text-base';
+      }
+
+      bar.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        bar.classList.add('opacity-0', 'pointer-events-none');
+      }, 2400);
+    }
+
+    function showAppDialog(title, message, onConfirm) {
+      document.getElementById('dialogTitle').innerText = title;
+      document.getElementById('dialogMessage').innerText = message;
+      document.getElementById('dialogConfirmBtn').onclick = () => {
+        closeAppDialog();
+        onConfirm();
+      };
+      document.getElementById('appDialog').classList.remove('hidden');
+    }
+
+    function closeAppDialog() {
+      document.getElementById('appDialog').classList.add('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
