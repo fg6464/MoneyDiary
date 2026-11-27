@@ -24,8 +24,8 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Phosphor Icons (Direct CSS for fast & reliable loading) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
 
   <!-- Firebase JS SDK v10.14.1 Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -34,14 +34,27 @@
 
   <style>
     /* CRITICAL DESIGN RULE: Strictly NO bold text anywhere across the entire app */
-    *, *::before, *::after,
+    *, *::before, *::after {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html, body,
     h1, h2, h3, h4, h5, h6,
     b, strong, th, td, input, button, select, textarea, span, p, label, div, option,
     .font-bold, .font-semibold, .font-medium {
       font-family: 'Prompt', 'Sarabun', sans-serif;
       font-weight: 400 !important;
-      -webkit-tap-highlight-color: transparent;
-      box-sizing: border-box;
+    }
+
+    /* Preserve Phosphor Icon font so icons render properly without being overridden */
+    i.ph, i.ph::before, [class^="ph-"], [class*=" ph-"], [class^="ph-"]::before, [class*=" ph-"]::before {
+      font-family: "Phosphor" !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
     }
 
     body {
