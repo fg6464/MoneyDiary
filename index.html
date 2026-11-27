@@ -1235,6 +1235,7 @@
     let enteredPin = '';
     let publicUsersList = [];
     let isPinVisible = false;
+    let isVerifyingPin = false;
     let adminEditingUser = null;
     let currentAuthMode = 'pin';
 
@@ -1673,13 +1674,13 @@
       if (authScreen) authScreen.classList.add('hidden');
       if (suspendedScreen) suspendedScreen.classList.add('hidden');
       if (mainApp) mainApp.classList.remove('hidden');
+      document.getElementById('appLoadingScreen')?.classList.add('hidden');
 
       updatePaydayCycleUI();
       updateCurrentPinDisplay();
       setDashboardScope('cycle');
       switchTab('record');
 
-      // Start real-time Firestore listeners
       listenToUserTransactions();
       if (isAdmin) {
         listenToAdminUsers();
@@ -1687,55 +1688,57 @@
     }
 
     // =========================================================================
-    // 6. QUICK PIN LOGIN SYSTEM
+    // 6. AUTH VIEW SWITCHER & QUICK PIN LOGIN
     // =========================================================================
     function switchAuthView(mode) {
       currentAuthMode = mode;
-      const tabPin = document.getElementById('tabBtnPin');
-      const tabLogin = document.getElementById('tabBtnLogin');
-      const tabReg = document.getElementById('tabBtnRegister');
       const viewPin = document.getElementById('authViewPin');
       const passForm = document.getElementById('authPassForm');
       const nameGroup = document.getElementById('authNameGroup');
       const pinSetupGroup = document.getElementById('authPinSetupGroup');
       const submitBtn = document.getElementById('authSubmitBtn');
-      const authErr = document.getElementById('authErrorMsg');
-      const pinErr = document.getElementById('pinErrorMsg');
+      const errEl = document.getElementById('authErrorMsg');
 
-      if (authErr) authErr.classList.add('hidden');
-      if (pinErr) pinErr.classList.add('hidden');
+      const tabPin = document.getElementById('tabBtnPin');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+      const activeCls = 'py-2 rounded-lg bg-white text-slate-800 shadow-sm tap-action text-center';
+      const inactiveCls = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
 
-      const activeTabCls = 'py-2 rounded-lg bg-white text-slate-800 shadow-sm tap-action text-center';
-      const inactiveTabCls = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
-
-      tabPin.className = mode === 'pin' ? activeTabCls : inactiveTabCls;
-      tabLogin.className = mode === 'login' ? activeTabCls : inactiveTabCls;
-      tabReg.className = mode === 'register' ? activeTabCls : inactiveTabCls;
+      if (tabPin) tabPin.className = mode === 'pin' ? activeCls : inactiveCls;
+      if (tabLogin) tabLogin.className = mode === 'login' ? activeCls : inactiveCls;
+      if (tabReg) tabReg.className = mode === 'register' ? activeCls : inactiveCls;
+      if (errEl) errEl.classList.add('hidden');
 
       if (mode === 'pin') {
-        viewPin.classList.remove('hidden');
-        passForm.classList.add('hidden');
+        viewPin?.classList.remove('hidden');
+        passForm?.classList.add('hidden');
         clearPin();
       } else {
-        viewPin.classList.add('hidden');
-        passForm.classList.remove('hidden');
+        viewPin?.classList.add('hidden');
+        passForm?.classList.remove('hidden');
         const isReg = mode === 'register';
-        nameGroup.classList.toggle('hidden', !isReg);
-        pinSetupGroup.classList.toggle('hidden', !isReg);
-        submitBtn.innerHTML = isReg
-          ? '<i class="ph ph-user-plus text-base"></i><span>สมัครสมาชิก</span>'
-          : '<i class="ph ph-sign-in text-base"></i><span>เข้าสู่ระบบ</span>';
+        nameGroup?.classList.toggle('hidden', !isReg);
+        pinSetupGroup?.classList.toggle('hidden', !isReg);
+        if (submitBtn) {
+          submitBtn.innerHTML = isReg
+            ? '<i class="ph ph-user-plus text-base"></i><span>สมัครสมาชิก</span>'
+            : '<i class="ph ph-sign-in text-base"></i><span>เข้าสู่ระบบ</span>';
+        }
       }
     }
 
-    function populatePinUsersUI(list) {
+    function populatePinUsersUI(list, isBackgroundRefresh = false) {
       const select = document.getElementById('pinUserSelect');
       const avatarsWrap = document.getElementById('pinMemberAvatars');
+      if (!select || !avatarsWrap) return;
+
+      const prevSelectedUid = select.value;
       select.innerHTML = '';
       avatarsWrap.innerHTML = '';
 
       let savedEmail = '';
-      try { savedEmail = localStorage.getItem('last_money_diary_email') || ''; } catch (e) {}
+      try { savedEmail = (localStorage.getItem('last_money_diary_email') || '').toLowerCase(); } catch (e) {}
 
       if (!list || list.length === 0) {
         select.innerHTML = '<option value="">ยังไม่มีสมาชิกในระบบ (กรุณาสมัครสมาชิก)</option>';
@@ -1743,33 +1746,54 @@
         return;
       }
 
+      let matchedPrev = false;
       list.forEach(u => {
+        const uid = u.id || u.uid;
         const opt = document.createElement('option');
-        opt.value = u.email;
+        opt.value = uid;
         opt.innerText = `${u.displayName || 'สมาชิก'} (${u.email})`;
-        if (savedEmail && u.email === savedEmail) {
+        if (isBackgroundRefresh && prevSelectedUid && uid === prevSelectedUid) {
+          opt.selected = true;
+          matchedPrev = true;
+        } else if (!matchedPrev && savedEmail && (u.email || '').toLowerCase() === savedEmail) {
           opt.selected = true;
         }
         select.appendChild(opt);
       });
 
       renderPinMemberAvatars();
-      onPinUserChanged();
+
+      // Do NOT clear already-entered PIN digits when background refresh finishes
+      if (isBackgroundRefresh && (enteredPin.length > 0 || isVerifyingPin)) {
+        updatePinDots();
+        return;
+      }
+
+      const target = getSelectedPinTargetUser();
+      const targetLen = target && target.pin ? String(target.pin).trim().length : 4;
+      const hint = document.getElementById('pinPromptHint');
+      if (hint) {
+        hint.innerText = target
+          ? `กดรหัส PIN ${targetLen} หลักของ ${target.displayName || target.email}`
+          : 'กดรหัส PIN เพื่อเข้าใช้งานทันที';
+      }
+      updatePinDots();
     }
 
     function renderPinMemberAvatars() {
       const wrap = document.getElementById('pinMemberAvatars');
-      const selectedEmail = document.getElementById('pinUserSelect')?.value || '';
+      const selectedUid = document.getElementById('pinUserSelect')?.value || '';
       if (!wrap) return;
       wrap.innerHTML = '';
 
       publicUsersList.forEach(u => {
-        const isSel = u.email === selectedEmail;
+        const uid = u.id || u.uid;
+        const isSel = uid === selectedUid;
         const label = u.displayName || (u.email ? u.email.split('@')[0] : 'สมาชิก');
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.onclick = () => {
-          document.getElementById('pinUserSelect').value = u.email;
+          document.getElementById('pinUserSelect').value = uid;
           renderPinMemberAvatars();
           onPinUserChanged();
         };
@@ -1784,15 +1808,16 @@
     }
 
     function getSelectedPinTargetUser() {
-      const selectedEmail = document.getElementById('pinUserSelect')?.value || '';
-      return publicUsersList.find(u => u.email === selectedEmail) || null;
+      const selectedUid = document.getElementById('pinUserSelect')?.value || '';
+      if (!selectedUid) return publicUsersList[0] || null;
+      return publicUsersList.find(u => (u.id || u.uid) === selectedUid) || null;
     }
 
     function onPinUserChanged() {
       renderPinMemberAvatars();
       clearPin();
       const target = getSelectedPinTargetUser();
-      const targetLen = target && target.pin ? String(target.pin).length : 4;
+      const targetLen = target && target.pin ? String(target.pin).trim().length : 4;
       const hint = document.getElementById('pinPromptHint');
       if (hint) {
         hint.innerText = target
@@ -1806,7 +1831,8 @@
       const container = document.getElementById('pinDotsContainer');
       if (!container) return;
       const target = getSelectedPinTargetUser();
-      const dotCount = Math.max(4, Math.min(6, target && target.pin ? String(target.pin).length : 4));
+      const rawPin = target && target.pin ? String(target.pin).trim() : '1234';
+      const dotCount = Math.max(4, Math.min(6, rawPin.length || 4));
 
       container.innerHTML = '';
       for (let i = 0; i < dotCount; i++) {
@@ -1817,6 +1843,8 @@
     }
 
     function pressPinDigit(digit) {
+      if (isVerifyingPin) return;
+
       const target = getSelectedPinTargetUser();
       if (!target) {
         const errEl = document.getElementById('pinErrorMsg');
@@ -1825,7 +1853,8 @@
         return;
       }
 
-      const expectedLen = target.pin ? String(target.pin).length : 4;
+      const rawPin = target.pin ? String(target.pin).trim() : '1234';
+      const expectedLen = Math.max(4, Math.min(6, rawPin.length || 4));
       if (enteredPin.length >= expectedLen) return;
 
       document.getElementById('pinErrorMsg')?.classList.add('hidden');
@@ -1833,102 +1862,138 @@
       updatePinDots();
 
       if (enteredPin.length === expectedLen) {
-        setTimeout(() => verifyPinLogin(), 120);
+        const pinAttempt = enteredPin;
+        setTimeout(() => verifyPinLogin(pinAttempt), 100);
       }
     }
 
     function deletePinDigit() {
-      if (enteredPin.length === 0) return;
+      if (isVerifyingPin || enteredPin.length === 0) return;
       enteredPin = enteredPin.slice(0, -1);
       updatePinDots();
     }
 
     function clearPin() {
+      if (isVerifyingPin) return;
       enteredPin = '';
       document.getElementById('pinErrorMsg')?.classList.add('hidden');
       updatePinDots();
     }
 
-    async function verifyPinLogin() {
-      const selectedEmail = document.getElementById('pinUserSelect')?.value || '';
-      const target = publicUsersList.find(u => u.email === selectedEmail);
+    async function verifyPinLogin(pinAttempt) {
+      if (isVerifyingPin) return;
+
+      const attempt = String(pinAttempt || enteredPin || '').trim();
+      const target = getSelectedPinTargetUser();
       const errEl = document.getElementById('pinErrorMsg');
+      const hintEl = document.getElementById('pinPromptHint');
+      const loader = document.getElementById('appLoadingScreen');
 
       if (!target) {
         errEl.innerText = 'ไม่พบข้อมูลบัญชีที่เลือก';
         errEl.classList.remove('hidden');
-        clearPin();
+        enteredPin = '';
+        updatePinDots();
         return;
       }
 
-      const uid = target.uid || target.id;
-      let freshProfile = { ...target, uid: uid };
+      isVerifyingPin = true;
+      if (hintEl) hintEl.innerText = 'กำลังตรวจสอบรหัส PIN...';
 
       try {
-        const docSnap = await db.collection('users').doc(uid).get();
-        if (docSnap.exists) {
-          freshProfile = { ...docSnap.data(), uid: docSnap.id };
-        }
-      } catch (e) {}
+        const uid = target.id || target.uid;
+        let freshProfile = { ...target, uid: uid };
 
-      if (freshProfile.status === 'suspended') {
-        errEl.innerText = 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อแอดมิน';
-        errEl.classList.remove('hidden');
-        enteredPin = '';
-        updatePinDots();
-        return;
-      }
-
-      const correctPin = String(freshProfile.pin || '1234');
-      if (enteredPin !== correctPin) {
-        errEl.innerText = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
-        errEl.classList.remove('hidden');
-        enteredPin = '';
-        updatePinDots();
-        return;
-      }
-
-      if ((freshProfile.email || '').toLowerCase() === ADMIN_AUTO_EMAIL && freshProfile.role !== 'admin') {
-        freshProfile.role = 'admin';
-      }
-
-      // Persist Quick PIN session in localStorage
-      try { localStorage.setItem(PIN_SESSION_KEY, uid); } catch (e) {}
-
-      // Attempt Firebase Auth sign-in if session credential exists
-      let cachedPwd = '';
-      try { cachedPwd = sessionStorage.getItem(`_md_pwd_${selectedEmail}`) || ''; } catch (e) {}
-      if (cachedPwd) {
         try {
-          await auth.signInWithEmailAndPassword(selectedEmail, cachedPwd);
-          clearPin();
-          showToast(`ยินดีต้อนรับ ${freshProfile.displayName || freshProfile.email}`);
+          const docSnap = await db.collection('users').doc(uid).get();
+          if (docSnap.exists) {
+            freshProfile = { ...docSnap.data(), uid: docSnap.id };
+          }
+        } catch (e) {
+          console.warn('Using cached profile for PIN login:', e);
+        }
+
+        if (freshProfile.status === 'suspended') {
+          errEl.innerText = 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อแอดมิน';
+          errEl.classList.remove('hidden');
+          enteredPin = '';
+          updatePinDots();
           return;
-        } catch (e) {}
-      }
+        }
 
-      currentUser = {
-        uid: uid,
-        email: freshProfile.email || selectedEmail,
-        displayName: freshProfile.displayName || '',
-        isPinSession: true
-      };
-      currentUserProfile = freshProfile;
+        const correctPin = String(freshProfile.pin || '1234').trim();
+        if (attempt !== correctPin) {
+          errEl.innerText = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+          errEl.classList.remove('hidden');
+          enteredPin = '';
+          updatePinDots();
+          if (hintEl) {
+            hintEl.innerText = `กดรหัส PIN ${correctPin.length} หลักของ ${freshProfile.displayName || freshProfile.email}`;
+          }
+          return;
+        }
 
-      try {
-        await db.collection('users').doc(uid).set({
+        // PIN matched! Immediately display loading screen while entering the app
+        if (loader) {
+          const loaderText = loader.querySelector('p');
+          if (loaderText) loaderText.innerText = 'กำลังเข้าสู่ระบบ...';
+          loader.classList.remove('hidden');
+        }
+
+        if ((freshProfile.email || '').toLowerCase() === ADMIN_AUTO_EMAIL && freshProfile.role !== 'admin') {
+          freshProfile.role = 'admin';
+        }
+
+        // Persist Quick PIN session in localStorage
+        try { localStorage.setItem(PIN_SESSION_KEY, uid); } catch (e) {}
+
+        // Attempt Firebase Auth sign-in if session credential exists
+        const targetEmail = freshProfile.email || target.email || '';
+        let cachedPwd = '';
+        try { cachedPwd = sessionStorage.getItem(`_md_pwd_${targetEmail}`) || ''; } catch (e) {}
+        if (cachedPwd && targetEmail) {
+          try {
+            await auth.signInWithEmailAndPassword(targetEmail, cachedPwd);
+            enteredPin = '';
+            updatePinDots();
+            showToast(`ยินดีต้อนรับ ${freshProfile.displayName || targetEmail}`);
+            return;
+          } catch (e) {}
+        }
+
+        currentUser = {
+          uid: uid,
+          email: targetEmail,
+          displayName: freshProfile.displayName || '',
+          isPinSession: true
+        };
+        currentUserProfile = freshProfile;
+
+        // Update lastLoginAt in the background without blocking app entry
+        db.collection('users').doc(uid).set({
           role: freshProfile.role || 'user',
           lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
           loginCount: firebase.firestore.FieldValue.increment(1)
-        }, { merge: true });
-      } catch (e) {}
+        }, { merge: true }).catch(() => {});
 
-      clearPin();
-      showToast(`เข้าสู่ระบบสำเร็จ: ${freshProfile.displayName || freshProfile.email}`);
-      applyLoggedInUI(currentUserProfile);
+        enteredPin = '';
+        updatePinDots();
+        showToast(`เข้าสู่ระบบสำเร็จ: ${freshProfile.displayName || targetEmail}`);
+        applyLoggedInUI(currentUserProfile);
+      } catch (err) {
+        console.error('PIN login error:', err);
+        if (loader) loader.classList.add('hidden');
+        errEl.innerText = 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+        errEl.classList.remove('hidden');
+        enteredPin = '';
+        updatePinDots();
+      } finally {
+        isVerifyingPin = false;
+      }
     }
 
     async function loadPublicUsersForPin() {
+      let hasCached = false;
       // 1. Render cached users immediately for instant PIN login when opened from Home Screen
       try {
         const cachedRaw = localStorage.getItem(PIN_USERS_CACHE_KEY);
@@ -1936,7 +2001,8 @@
           const cachedList = JSON.parse(cachedRaw);
           if (Array.isArray(cachedList) && cachedList.length > 0) {
             publicUsersList = cachedList;
-            populatePinUsersUI(publicUsersList);
+            populatePinUsersUI(publicUsersList, false);
+            hasCached = true;
           }
         }
       } catch (e) {}
@@ -1951,10 +2017,10 @@
           if (u.status !== 'suspended') {
             freshList.push({
               id: doc.id,
-              uid: u.uid || doc.id,
-              email: u.email || '',
+              uid: doc.id,
+              email: (u.email || '').trim(),
               displayName: u.displayName || '',
-              pin: u.pin || '1234',
+              pin: String(u.pin || '1234').trim(),
               role: u.role || 'user',
               status: u.status || 'active'
             });
@@ -1965,7 +2031,7 @@
         try {
           localStorage.setItem(PIN_USERS_CACHE_KEY, JSON.stringify(freshList));
         } catch (e) {}
-        populatePinUsersUI(publicUsersList);
+        populatePinUsersUI(publicUsersList, hasCached);
       } catch (err) {
         console.error("Error loading users for PIN:", err);
         if (publicUsersList.length === 0) {
@@ -2046,6 +2112,7 @@
     }
 
     async function handleLogout() {
+      isVerifyingPin = false;
       try { localStorage.removeItem(PIN_SESSION_KEY); } catch (e) {}
       if (unsubscribeUserTx) { unsubscribeUserTx(); unsubscribeUserTx = null; }
       if (unsubscribeAdminUsers) { unsubscribeAdminUsers(); unsubscribeAdminUsers = null; }
