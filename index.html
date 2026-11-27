@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Money Diary - บันทึกรายรับรายจ่าย</title>
+  <title>Money Diary - ระบบบันทึกรายรับรายจ่าย</title>
 
-  <!-- Typography: Prompt & Sarabun -->
+  <!-- Typography: Prompt & Sarabun (weights 300, 400 only) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400&family=Sarabun:wght@300;400&display=swap" rel="stylesheet">
@@ -16,13 +16,13 @@
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- Firebase SDKs (v10 Compat) -->
+  <!-- Firebase SDKs (v10.14.1 Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
   <style>
-    /* STRICT CONSTRAINT: No bold font anywhere in the application */
+    /* STRICT DESIGN REQUIREMENT: No bold text anywhere in the application */
     *, *::before, *::after,
     h1, h2, h3, h4, h5, h6,
     b, strong, th, td, input, button, select, textarea, span, p, label, div,
@@ -37,6 +37,7 @@
       color: #334155;
       font-family: 'Prompt', 'Sarabun', -apple-system, sans-serif;
       padding-bottom: env(safe-area-inset-bottom);
+      overflow-x: hidden;
     }
 
     .card {
@@ -46,12 +47,13 @@
     }
 
     .tap-action {
-      transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
     }
     .tap-action:active {
-      transform: scale(0.96);
+      transform: scale(0.97);
     }
 
+    /* Hide number input spinners */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button {
       -webkit-appearance: none;
@@ -74,8 +76,8 @@
 
     /* Subtle scrollbar */
     ::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
       background: #f8fafc;
@@ -88,15 +90,15 @@
 </head>
 <body class="min-h-screen flex flex-col antialiased">
 
-  <!-- INITIAL LOADER -->
+  <!-- ==================== INITIAL LOADING SCREEN ==================== -->
   <div id="appLoadingScreen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
     <div class="w-10 h-10 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div>
     <p class="mt-4 text-xs text-slate-500">กำลังเชื่อมต่อระบบฐานข้อมูล...</p>
   </div>
 
-  <!-- AUTH SCREEN (PASSWORD & PIN MODES) -->
+  <!-- ==================== AUTHENTICATION SCREEN ==================== -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-slate-50 hidden">
-    <div class="card p-6 sm:p-8 w-full max-w-sm shadow-sm space-y-4">
+    <div class="card p-6 sm:p-8 w-full max-w-sm shadow-sm space-y-5">
       <div class="text-center space-y-1">
         <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-2xl mx-auto mb-2">
           <i class="ph ph-wallet"></i>
@@ -105,11 +107,11 @@
         <p class="text-xs text-slate-400">บันทึกรายรับรายจ่ายแยกบัญชีรายคน</p>
       </div>
 
-      <!-- Mode Selector: Quick PIN vs Full Login vs Register -->
+      <!-- Auth Mode Switcher -->
       <div class="grid grid-cols-3 p-1 bg-slate-100 rounded-xl gap-1 text-[11px]">
-        <button type="button" id="tabBtnPin" onclick="switchAuthView('pin')" class="py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center">เข้าด้วย PIN</button>
-        <button type="button" id="tabBtnLogin" onclick="switchAuthView('login')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">รหัสผ่าน</button>
-        <button type="button" id="tabBtnRegister" onclick="switchAuthView('register')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">ลงทะเบียน</button>
+        <button type="button" id="tabBtnPin" onclick="switchAuthView('pin')" class="py-2 rounded-lg bg-white text-slate-800 shadow-sm tap-action text-center">เข้าด้วย PIN</button>
+        <button type="button" id="tabBtnLogin" onclick="switchAuthView('login')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">อีเมล/รหัสผ่าน</button>
+        <button type="button" id="tabBtnRegister" onclick="switchAuthView('register')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">สมัครสมาชิก</button>
       </div>
 
       <!-- VIEW 1: QUICK PIN LOGIN -->
@@ -122,7 +124,7 @@
         </div>
 
         <div class="text-center py-2 space-y-3">
-          <span class="text-xs text-slate-400 block">กดหรือพิมพ์รหัส PIN 4 หรือ 6 หลัก</span>
+          <span class="text-xs text-slate-400 block" id="pinPromptHint">กดรหัส PIN เพื่อเข้าใช้งานทันที</span>
           <div class="flex items-center justify-center gap-3" id="pinDotsContainer">
             <div class="pin-dot"></div>
             <div class="pin-dot"></div>
@@ -131,20 +133,20 @@
           </div>
         </div>
 
-        <!-- Touch Numeric Keypad -->
+        <!-- Touch-Friendly Numeric Keypad -->
         <div class="grid grid-cols-3 gap-2 pt-1">
-          <button type="button" onclick="pressPinDigit('1')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">1</button>
-          <button type="button" onclick="pressPinDigit('2')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">2</button>
-          <button type="button" onclick="pressPinDigit('3')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">3</button>
-          <button type="button" onclick="pressPinDigit('4')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">4</button>
-          <button type="button" onclick="pressPinDigit('5')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">5</button>
-          <button type="button" onclick="pressPinDigit('6')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">6</button>
-          <button type="button" onclick="pressPinDigit('7')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">7</button>
-          <button type="button" onclick="pressPinDigit('8')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">8</button>
-          <button type="button" onclick="pressPinDigit('9')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">9</button>
-          <button type="button" onclick="clearPin()" class="py-3 text-slate-400 hover:text-slate-600 text-xs rounded-2xl tap-action">ล้าง</button>
-          <button type="button" onclick="pressPinDigit('0')" class="py-3 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-base rounded-2xl border border-slate-200/70 tap-action">0</button>
-          <button type="button" onclick="deletePinDigit()" class="py-3 text-slate-400 hover:text-rose-600 text-base rounded-2xl tap-action">
+          <button type="button" onclick="pressPinDigit('1')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">1</button>
+          <button type="button" onclick="pressPinDigit('2')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">2</button>
+          <button type="button" onclick="pressPinDigit('3')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">3</button>
+          <button type="button" onclick="pressPinDigit('4')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">4</button>
+          <button type="button" onclick="pressPinDigit('5')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">5</button>
+          <button type="button" onclick="pressPinDigit('6')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">6</button>
+          <button type="button" onclick="pressPinDigit('7')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">7</button>
+          <button type="button" onclick="pressPinDigit('8')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">8</button>
+          <button type="button" onclick="pressPinDigit('9')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">9</button>
+          <button type="button" onclick="clearPin()" class="py-3.5 text-slate-400 hover:text-slate-600 text-xs rounded-2xl tap-action">ล้าง</button>
+          <button type="button" onclick="pressPinDigit('0')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">0</button>
+          <button type="button" onclick="deletePinDigit()" class="py-3.5 text-slate-400 hover:text-rose-600 text-lg rounded-2xl tap-action flex items-center justify-center">
             <i class="ph ph-backspace"></i>
           </button>
         </div>
@@ -152,7 +154,7 @@
         <div id="pinErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed text-center"></div>
       </div>
 
-      <!-- VIEW 2 & 3: EMAIL / PASSWORD LOGIN OR REGISTER -->
+      <!-- VIEW 2 & 3: EMAIL / PASSWORD LOGIN & REGISTER -->
       <form id="authPassForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5 text-xs hidden">
         <div id="authNameGroup" class="hidden">
           <label class="block text-slate-500 mb-1">ชื่อเล่น / ชื่อเรียก</label>
@@ -172,12 +174,12 @@
         <div id="authPinSetupGroup" class="hidden">
           <label class="block text-slate-500 mb-1">กำหนดรหัส PIN ด่วน (ตัวเลข 4-6 หลัก)</label>
           <input type="password" id="authInitialPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="เช่น 1234 หรือ 123456" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
-          <p class="text-[10px] text-slate-400 mt-1">ใช้สำหรับแตะเข้าใช้งานระบบอย่างรวดเร็วในครั้งต่อไป</p>
+          <p class="text-[10px] text-slate-400 mt-1">ใช้สำหรับกดเข้าใช้งานรวดเร็วในครั้งต่อไป (ค่าเริ่มต้น 1234)</p>
         </div>
 
         <div id="authErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed"></div>
 
-        <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs transition tap-action flex items-center justify-center gap-1.5">
+        <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-sm transition tap-action flex items-center justify-center gap-1.5">
           <i class="ph ph-sign-in text-base"></i>
           <span>เข้าสู่ระบบ</span>
         </button>
@@ -185,7 +187,7 @@
     </div>
   </div>
 
-  <!-- SUSPENDED ACCOUNT SCREEN -->
+  <!-- ==================== SUSPENDED ACCOUNT SCREEN ==================== -->
   <div id="suspendedScreen" class="min-h-screen flex items-center justify-center p-4 bg-slate-50 hidden">
     <div class="card p-6 w-full max-w-sm text-center space-y-4">
       <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center text-2xl mx-auto">
@@ -201,30 +203,34 @@
     </div>
   </div>
 
-  <!-- MAIN APP CONTAINER -->
-  <div id="mainApp" class="flex-1 flex flex-col hidden pb-24 md:pb-8">
+  <!-- ==================== MAIN APPLICATION ==================== -->
+  <div id="mainApp" class="flex-1 flex flex-col hidden pb-24 md:pb-10">
 
-    <!-- TOP APP BAR -->
+    <!-- TOP NAVIGATION BAR -->
     <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
-      <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center text-base shadow-xs">
+      <div class="max-w-5xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center text-base shrink-0">
             <i class="ph ph-wallet"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="text-slate-800 text-xs sm:text-sm">Money Diary</span>
-              <span id="navRoleBadge" class="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200">user</span>
+              <span class="text-slate-800 text-xs sm:text-sm truncate">Money Diary</span>
+              <span id="navRoleBadge" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">User</span>
             </div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[130px] sm:max-w-[200px]" id="navUserEmail">-</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[140px] sm:max-w-[220px]" id="navUserEmail">-</p>
           </div>
         </div>
 
-        <!-- Desktop/Tablet Nav Links & Actions -->
+        <!-- Desktop / Tablet Navigation Tabs -->
         <div class="flex items-center gap-2">
-          <div class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl text-xs">
-            <button type="button" onclick="switchTab('record')" id="deskTabRecord" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action">บันทึก</button>
+          <div class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl text-xs gap-0.5">
+            <button type="button" onclick="switchTab('record')" id="deskTabRecord" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action">บันทึก</button>
             <button type="button" onclick="switchTab('history')" id="deskTabHistory" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ประวัติ</button>
+            <button type="button" onclick="switchTab('payday')" id="deskTabPayday" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action flex items-center gap-1">
+              <i class="ph ph-calendar-check text-emerald-600"></i>
+              <span>สรุปงวด</span>
+            </button>
             <button type="button" onclick="switchTab('settings')" id="deskTabSettings" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ตั้งค่า PIN</button>
             <button type="button" onclick="switchTab('admin')" id="deskTabAdmin" class="hidden px-3 py-1.5 rounded-lg text-indigo-700 hover:text-indigo-900 tap-action">แอดมิน</button>
           </div>
@@ -237,45 +243,71 @@
       </div>
     </header>
 
-    <!-- CONTENT WRAPPER -->
-    <main class="max-w-4xl mx-auto px-3 sm:px-4 w-full mt-4 space-y-4 flex-1">
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-5xl mx-auto px-3 sm:px-4 w-full mt-4 space-y-4 flex-1">
 
-      <!-- COMPACT SUMMARY OVERVIEW (ALWAYS VISIBLE) -->
-      <section class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div class="card p-3 sm:p-4 shadow-xs">
-          <div class="flex items-center justify-between text-slate-400 mb-1">
-            <span class="text-[11px]">ยอดคงเหลือ</span>
-            <i class="ph ph-wallet text-xs text-emerald-600"></i>
+      <!-- DASHBOARD OVERVIEW SECTION (Summary Toggle + Active Cycle + 4 Cards) -->
+      <section class="space-y-2.5">
+        <!-- Scope Toggle Pill + Prominent Payday Summary Button -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center flex-wrap gap-2">
+            <div class="inline-flex items-center bg-slate-200/70 p-0.5 rounded-xl text-[11px]">
+              <button type="button" id="btnScopeCycle" onclick="setDashboardScope('cycle')" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action">
+                ยอดตามรอบเงินเดือน
+              </button>
+              <button type="button" id="btnScopeAll" onclick="setDashboardScope('all')" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">
+                ยอดรวมทั้งหมด
+              </button>
+            </div>
+            <span id="dashActiveCycleBadge" class="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+              <i class="ph ph-calendar-blank text-xs"></i>
+              <span id="dashCycleRangeLabel">-</span>
+            </span>
           </div>
-          <div class="text-lg sm:text-xl text-slate-800 truncate" id="dashBalance">฿0.00</div>
-          <div class="text-[10px] text-slate-400 truncate mt-0.5">สุทธิ</div>
+
+          <button type="button" onclick="switchTab('payday')" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs rounded-xl shadow-sm tap-action">
+            <i class="ph ph-chart-pie-slice text-sm"></i>
+            <span>สรุปยอดตามงวดเงินเดือน</span>
+          </button>
         </div>
 
-        <div class="card p-3 sm:p-4 shadow-xs">
-          <div class="flex items-center justify-between text-slate-400 mb-1">
-            <span class="text-[11px]">รายรับ</span>
-            <i class="ph ph-arrow-down-left text-xs text-emerald-500"></i>
+        <!-- 4 Summary Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div class="card p-3 sm:p-4 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[11px]" id="dashBalanceLabel">คงเหลืองวดนี้</span>
+              <i class="ph ph-wallet text-xs text-emerald-600"></i>
+            </div>
+            <div class="text-lg sm:text-xl text-slate-800 truncate" id="dashBalance">฿0.00</div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashBalanceSub">รายรับหักลบรายจ่าย</div>
           </div>
-          <div class="text-lg sm:text-xl text-emerald-600 truncate" id="dashIncome">฿0.00</div>
-          <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินเข้า</div>
-        </div>
 
-        <div class="card p-3 sm:p-4 shadow-xs">
-          <div class="flex items-center justify-between text-slate-400 mb-1">
-            <span class="text-[11px]">รายจ่าย</span>
-            <i class="ph ph-arrow-up-right text-xs text-rose-500"></i>
+          <div class="card p-3 sm:p-4 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[11px]" id="dashIncomeLabel">รายรับงวดนี้</span>
+              <i class="ph ph-arrow-down-left text-xs text-emerald-500"></i>
+            </div>
+            <div class="text-lg sm:text-xl text-emerald-600 truncate" id="dashIncome">฿0.00</div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินเข้า</div>
           </div>
-          <div class="text-lg sm:text-xl text-rose-600 truncate" id="dashExpense">฿0.00</div>
-          <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินออก</div>
-        </div>
 
-        <div class="card p-3 sm:p-4 shadow-xs">
-          <div class="flex items-center justify-between text-slate-400 mb-1">
-            <span class="text-[11px]">จ่ายวันนี้</span>
-            <i class="ph ph-calendar text-xs text-amber-500"></i>
+          <div class="card p-3 sm:p-4 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[11px]" id="dashExpenseLabel">รายจ่ายงวดนี้</span>
+              <i class="ph ph-arrow-up-right text-xs text-rose-500"></i>
+            </div>
+            <div class="text-lg sm:text-xl text-rose-600 truncate" id="dashExpense">฿0.00</div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินออก</div>
           </div>
-          <div class="text-lg sm:text-xl text-amber-600 truncate" id="dashTodayExpense">฿0.00</div>
-          <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashTodayDateLabel">วันนี้</div>
+
+          <div class="card p-3 sm:p-4 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[11px]">รายจ่ายวันนี้</span>
+              <i class="ph ph-calendar text-xs text-amber-500"></i>
+            </div>
+            <div class="text-lg sm:text-xl text-amber-600 truncate" id="dashTodayExpense">฿0.00</div>
+            <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashTodayDateLabel">วันนี้</div>
+          </div>
         </div>
       </section>
 
@@ -283,15 +315,15 @@
       <section id="tabContentRecord" class="space-y-4">
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h2 class="text-slate-800 text-xs flex items-center gap-1.5">
+            <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
               <i class="ph ph-plus-circle text-emerald-600 text-base"></i> บันทึกรายการใหม่
             </h2>
-            <span class="text-[11px] text-slate-400">บันทึกลงคลาวด์</span>
+            <span class="text-[11px] text-slate-400">บันทึกลงคลาวด์ทันที</span>
           </div>
 
-          <!-- Type Switcher -->
+          <!-- Expense / Income Toggle -->
           <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl gap-1">
-            <button type="button" id="btnTypeExpense" onclick="setEntryType('expense')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action">
+            <button type="button" id="btnTypeExpense" onclick="setEntryType('expense')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-sm tap-action">
               <i class="ph ph-minus-circle text-sm"></i> รายจ่าย
             </button>
             <button type="button" id="btnTypeIncome" onclick="setEntryType('income')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action">
@@ -299,21 +331,20 @@
             </button>
           </div>
 
-          <!-- Large Amount Input Field with Clear Button -->
+          <!-- Amount Input + Quick Add Chips -->
           <div>
             <div class="flex items-center justify-between mb-1">
               <label class="text-xs text-slate-500">จำนวนเงิน (บาท)</label>
-              <span class="text-[11px] text-slate-400">แตะบวกเงินด่วนได้</span>
+              <span class="text-[11px] text-slate-400">พิมพ์หรือแตะบวกด่วน</span>
             </div>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-xl">฿</span>
               <input type="number" id="txAmount" inputmode="decimal" step="any" min="0" placeholder="0.00" class="w-full pl-9 pr-12 py-3 bg-slate-50 focus:bg-white border border-slate-200 rounded-2xl text-2xl text-slate-800 outline-none focus:border-emerald-500 transition-all">
-              <button type="button" onclick="clearAmount()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-300 hover:text-slate-500">
+              <button type="button" onclick="clearAmount()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-300 hover:text-slate-500" title="ล้างจำนวนเงิน">
                 <i class="ph ph-x-circle text-2xl"></i>
               </button>
             </div>
 
-            <!-- Quick Add Chips -->
             <div class="grid grid-cols-4 gap-2 mt-2">
               <button type="button" onclick="quickAddAmount(20)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+20</button>
               <button type="button" onclick="quickAddAmount(50)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+50</button>
@@ -322,17 +353,17 @@
             </div>
           </div>
 
-          <!-- Category Selector -->
+          <!-- Category Selector Grid -->
           <div>
             <label class="block text-xs text-slate-500 mb-1.5">หมวดหมู่</label>
-            <div id="categoryContainer" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+            <div id="categoryContainer" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
           </div>
 
-          <!-- Note & Date Input -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <!-- Note & Date Inputs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-xs text-slate-500 mb-1">โน้ต / รายละเอียด</label>
-              <input type="text" id="txNote" placeholder="เช่น กาแฟเช้า ข้าวเที่ยง" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+              <input type="text" id="txNote" placeholder="เช่น กาแฟเช้า ข้าวเที่ยง งวด พ.ย." class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
             </div>
             <div>
               <label class="block text-xs text-slate-500 mb-1">วันที่</label>
@@ -340,8 +371,8 @@
             </div>
           </div>
 
-          <!-- Big Save Button -->
-          <button type="button" id="saveTxBtn" onclick="handleSaveTransaction()" class="w-full py-3.5 bg-slate-900 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-2xl shadow-xs transition-colors flex items-center justify-center gap-2 tap-action">
+          <!-- Save Button -->
+          <button type="button" id="saveTxBtn" onclick="handleSaveTransaction()" class="w-full py-3.5 bg-slate-900 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-2xl shadow-sm transition-colors flex items-center justify-center gap-2 tap-action">
             <i class="ph ph-check text-base"></i>
             <span>บันทึกรายการ</span>
           </button>
@@ -354,72 +385,237 @@
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <div class="flex items-center gap-2">
               <i class="ph ph-clock-counter-clockwise text-emerald-600 text-base"></i>
-              <h2 class="text-slate-800 text-xs">ประวัติรายการ</h2>
+              <h2 class="text-slate-800 text-xs sm:text-sm">ประวัติรายการย้อนหลัง</h2>
             </div>
             <div class="flex items-center gap-2">
               <span id="historyCountLabel" class="text-[11px] text-slate-400">0 รายการ</span>
-              <button type="button" onclick="exportUserCSV()" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
+              <button type="button" onclick="exportFilteredHistoryCSV()" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
                 <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
-                <span class="hidden sm:inline">ส่งออก</span> Excel
+                <span>ส่งออก Excel</span>
               </button>
             </div>
           </div>
 
-          <!-- Filter Controls -->
-          <div class="space-y-2">
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                <i class="ph ph-magnifying-glass text-xs"></i>
-              </span>
-              <input type="text" id="filterSearch" oninput="renderUserHistory()" placeholder="ค้นหาหมวดหมู่หรือโน้ต..." class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div class="flex items-center bg-slate-100 p-0.5 rounded-xl text-[11px]">
-                <button type="button" onclick="setPeriodFilter('all')" id="btnPeriodAll" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">ทั้งหมด</button>
-                <button type="button" onclick="setPeriodFilter('today')" id="btnPeriodToday" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">วันนี้</button>
-                <button type="button" onclick="setPeriodFilter('week')" id="btnPeriodWeek" class="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800">สัปดาห์นี้</button>
-                <button type="button" onclick="setPeriodFilter('month')" id="btnPeriodMonth" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs">เดือนนี้</button>
+          <!-- Search & Period Filters -->
+          <div class="space-y-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <i class="ph ph-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="filterSearch" oninput="renderUserHistory()" placeholder="ค้นหาหมวดหมู่หรือโน้ต..." class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
               </div>
 
-              <select id="filterType" onchange="renderUserHistory()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-2.5 py-1.5 outline-none">
+              <select id="filterPeriod" onchange="onHistoryPeriodChange()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-500">
+                <option value="payday" selected>รอบเงินเดือนปัจจุบัน</option>
+                <option value="custom">กำหนดช่วงวันที่เอง</option>
+                <option value="today">เฉพาะวันนี้</option>
+                <option value="week">สัปดาห์นี้</option>
+                <option value="month">เดือนนี้ตามปฏิทิน</option>
+                <option value="all">ทุกช่วงเวลา</option>
+              </select>
+
+              <select id="filterType" onchange="renderUserHistory()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-500">
                 <option value="all">ทั้งหมด (รับ/จ่าย)</option>
                 <option value="expense">เฉพาะรายจ่าย</option>
                 <option value="income">เฉพาะรายรับ</option>
               </select>
             </div>
+
+            <!-- Inline Custom Date Range Picker (Visible when period === 'custom') -->
+            <div id="historyCustomDateRow" class="hidden grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <div>
+                <label class="block text-[11px] text-slate-500 mb-1">ตั้งแต่วันที่</label>
+                <input type="date" id="historyStartDate" onchange="renderUserHistory()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-500 mb-1">ถึงวันที่</label>
+                <input type="date" id="historyEndDate" onchange="renderUserHistory()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
+              </div>
+            </div>
+
+            <!-- Active Payday Cycle Notice in History -->
+            <div id="historyPaydayHint" class="flex items-center justify-between px-3 py-2 bg-emerald-50/60 border border-emerald-100 rounded-xl text-[11px] text-emerald-700">
+              <span class="flex items-center gap-1.5">
+                <i class="ph ph-calendar-check text-sm"></i>
+                <span>กำลังแสดงรอบเงินเดือน: <span id="historyPaydayRangeText">-</span></span>
+              </span>
+              <button type="button" onclick="switchTab('payday')" class="underline hover:text-emerald-900">เปลี่ยนงวด</button>
+            </div>
           </div>
 
-          <div id="userTxListContainer" class="space-y-2"></div>
+          <!-- Mobile Cards View -->
+          <div id="userTxCardsMobile" class="md:hidden space-y-2"></div>
+
+          <!-- Desktop Table View -->
+          <div id="userTxTableWrapDesktop" class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="p-3">วันที่</th>
+                  <th class="p-3">ประเภท</th>
+                  <th class="p-3">หมวดหมู่</th>
+                  <th class="p-3">โน้ต</th>
+                  <th class="p-3 text-right">จำนวนเงิน</th>
+                  <th class="p-3 text-center">ลบ</th>
+                </tr>
+              </thead>
+              <tbody id="userTxTableBodyDesktop" class="divide-y divide-slate-100 text-slate-700"></tbody>
+            </table>
+          </div>
+
           <div id="userTxEmpty" class="py-8 text-center text-xs text-slate-400 hidden">ไม่มีรายการในช่วงเวลานี้</div>
 
-          <div class="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs text-slate-500">
-            <span>ผลรวมตามเงื่อนไข:</span>
-            <div class="flex gap-3">
+          <!-- Subtotal Footer -->
+          <div class="p-3 bg-slate-50 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>ผลรวมตามเงื่อนไขที่เลือก:</span>
+            <div class="flex flex-wrap gap-3">
               <span>รับ: <span class="text-emerald-600" id="subtotalIncome">฿0.00</span></span>
               <span>จ่าย: <span class="text-rose-600" id="subtotalExpense">฿0.00</span></span>
+              <span>คงเหลือ: <span class="text-slate-800" id="subtotalNet">฿0.00</span></span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ==================== TAB 3: USER PIN SETTINGS ==================== -->
+      <!-- ==================== TAB 3: PAYDAY CYCLE SUMMARY (รอบเงินเดือน) ==================== -->
+      <section id="tabContentPayday" class="space-y-4 hidden">
+        <!-- Date Range Selector & Presets Card -->
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div>
+              <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                <i class="ph ph-calendar-check text-emerald-600 text-base"></i> สรุปยอดตามงวดเงินเดือน (Payday Cycle)
+              </h2>
+              <p class="text-[11px] text-slate-400 mt-0.5">เลือกวันเงินเดือนออกและวันสิ้นสุดงวดได้อิสระตามรอบจริงของคุณ</p>
+            </div>
+            <button type="button" onclick="exportPaydayCycleCSV()" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
+              <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
+              <span>ส่งออก Excel (CSV) เฉพาะงวดนี้</span>
+            </button>
+          </div>
+
+          <!-- Date Range Pickers -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">วันเริ่มงวด (วันเงินออก)</label>
+              <input type="date" id="paydayStartInput" onchange="renderPaydaySummary()" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-800">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">วันสิ้นสุดงวด</label>
+              <input type="date" id="paydayEndInput" onchange="renderPaydaySummary()" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-800">
+            </div>
+          </div>
+
+          <!-- Quick Presets & Save Active Cycle -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <button type="button" onclick="applyPaydayPreset('25to24')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
+                25 เดือนก่อน - 24 เดือนนี้
+              </button>
+              <button type="button" onclick="applyPaydayPreset('calendarMonth')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
+                เดือนนี้ตามปฏิทิน
+              </button>
+              <button type="button" onclick="applyPaydayPreset('last30')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
+                30 วันล่าสุด
+              </button>
+            </div>
+
+            <button type="button" id="btnSaveCycle" onclick="saveCurrentPaydayCycle()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs rounded-xl shadow-sm tap-action flex items-center justify-center gap-1.5">
+              <i class="ph ph-floppy-disk text-sm"></i>
+              <span>บันทึกเป็นงวดปัจจุบัน</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Metrics for Selected Period -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          <div class="card p-3.5 sm:p-4 shadow-xs">
+            <span class="text-[11px] text-slate-400 block mb-1">รายรับในงวดนี้</span>
+            <div class="text-lg sm:text-xl text-emerald-600 truncate" id="paydayIncome">฿0.00</div>
+            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydayIncomeCount">0 รายการ</span>
+          </div>
+
+          <div class="card p-3.5 sm:p-4 shadow-xs">
+            <span class="text-[11px] text-slate-400 block mb-1">รายจ่ายในงวดนี้</span>
+            <div class="text-lg sm:text-xl text-rose-600 truncate" id="paydayExpense">฿0.00</div>
+            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydayExpenseCount">0 รายการ</span>
+          </div>
+
+          <div class="card p-3.5 sm:p-4 shadow-xs">
+            <span class="text-[11px] text-slate-400 block mb-1">คงเหลือสุทธิในงวดนี้</span>
+            <div class="text-lg sm:text-xl text-slate-800 truncate" id="paydayBalance">฿0.00</div>
+            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydaySaveRate">อัตราคงเหลือ 0%</span>
+          </div>
+
+          <div class="card p-3.5 sm:p-4 shadow-xs">
+            <span class="text-[11px] text-slate-400 block mb-1">เฉลี่ยจ่าย / วัน</span>
+            <div class="text-lg sm:text-xl text-amber-600 truncate" id="paydayAvgDaily">฿0.00</div>
+            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydayDaysInfo">0 วัน</span>
+          </div>
+        </div>
+
+        <!-- Category Breakdown Card -->
+        <div class="card p-4 sm:p-5 space-y-3 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+              <i class="ph ph-chart-bar text-rose-500 text-base"></i> สรุปรายจ่ายแยกตามหมวดหมู่
+            </h3>
+            <span class="text-[11px] text-slate-400" id="paydayPeriodLabel">-</span>
+          </div>
+          <div id="paydayCategoryBreakdown" class="space-y-3"></div>
+          <div id="paydayCategoryEmpty" class="py-6 text-center text-xs text-slate-400 hidden">ยังไม่มีรายจ่ายในช่วงวันที่เลือก</div>
+        </div>
+
+        <!-- Transaction List for Selected Cycle -->
+        <div class="card p-4 sm:p-5 space-y-3 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+              <i class="ph ph-list-bullets text-emerald-600 text-base"></i> รายการทั้งหมดในงวดนี้
+            </h3>
+            <span class="text-[11px] text-slate-400" id="paydayTxCountLabel">0 รายการ</span>
+          </div>
+
+          <!-- Mobile Cards -->
+          <div id="paydayTxCardsMobile" class="md:hidden space-y-2"></div>
+
+          <!-- Desktop Table -->
+          <div id="paydayTxTableWrapDesktop" class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="p-3">วันที่</th>
+                  <th class="p-3">ประเภท</th>
+                  <th class="p-3">หมวดหมู่</th>
+                  <th class="p-3">โน้ต</th>
+                  <th class="p-3 text-right">จำนวนเงิน</th>
+                </tr>
+              </thead>
+              <tbody id="paydayTxTableBodyDesktop" class="divide-y divide-slate-100 text-slate-700"></tbody>
+            </table>
+          </div>
+
+          <div id="paydayTxEmpty" class="py-6 text-center text-xs text-slate-400 hidden">ไม่มีรายการในช่วงวันที่เลือก</div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: USER PIN SETTINGS ==================== -->
       <section id="tabContentSettings" class="space-y-4 hidden">
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <div class="flex items-center gap-2">
               <i class="ph ph-key text-emerald-600 text-base"></i>
-              <h2 class="text-slate-800 text-xs">ตั้งค่ารหัส PIN ด่วน</h2>
+              <h2 class="text-slate-800 text-xs sm:text-sm">ตั้งค่ารหัส PIN ด่วน</h2>
             </div>
             <span class="text-[11px] text-slate-400">สำหรับเข้าใช้งานรวดเร็ว</span>
           </div>
 
-          <div class="space-y-3 text-xs max-w-sm">
+          <div class="space-y-3.5 text-xs max-w-sm">
             <div>
               <label class="block text-slate-500 mb-1">รหัส PIN ปัจจุบันในระบบ</label>
               <div class="flex items-center gap-2">
-                <span id="currentPinDisplay" class="font-mono text-sm tracking-widest px-3 py-2 bg-slate-100 rounded-xl text-slate-700">••••</span>
-                <button type="button" onclick="togglePinVisibility()" id="btnTogglePinEye" class="p-2 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 tap-action">
+                <span id="currentPinDisplay" class="font-mono text-sm tracking-widest px-3.5 py-2 bg-slate-100 rounded-xl text-slate-700">••••</span>
+                <button type="button" onclick="togglePinVisibility()" id="btnTogglePinEye" class="p-2 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 tap-action" title="แสดง/ซ่อน PIN">
                   <i class="ph ph-eye text-base"></i>
                 </button>
               </div>
@@ -427,10 +623,10 @@
 
             <div>
               <label class="block text-slate-500 mb-1">กำหนด PIN ใหม่ (ตัวเลข 4-6 หลัก)</label>
-              <input type="password" id="inputNewPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="ระบุตัวเลข เช่น 1234" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
+              <input type="password" id="inputNewPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="ระบุตัวเลข เช่น 1234 หรือ 123456" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
             </div>
 
-            <button type="button" onclick="handleUpdateSelfPin()" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs transition tap-action flex items-center justify-center gap-1.5">
+            <button type="button" onclick="handleUpdateSelfPin()" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-sm transition tap-action flex items-center justify-center gap-1.5">
               <i class="ph ph-check text-base"></i>
               <span>บันทึก PIN ใหม่</span>
             </button>
@@ -438,12 +634,12 @@
         </div>
       </section>
 
-      <!-- ==================== TAB 4: ADMIN PANEL ==================== -->
+      <!-- ==================== TAB 5: ADMIN PANEL ==================== -->
       <section id="tabContentAdmin" class="space-y-4 hidden">
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <div>
-              <h2 class="text-slate-800 text-xs flex items-center gap-1.5">
+              <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
                 <i class="ph ph-shield-check text-indigo-600 text-base"></i> จัดการสมาชิก (Admin Panel)
               </h2>
               <p class="text-[11px] text-slate-400">ตรวจสอบผู้ใช้งาน แก้ไขรหัส PIN ดูรายการ หรือลบสมาชิก</p>
@@ -466,22 +662,39 @@
             </div>
           </div>
 
-          <!-- Members Responsive List Container -->
-          <div id="adminMembersContainer" class="space-y-2.5"></div>
+          <!-- Mobile Admin User Cards -->
+          <div id="adminMembersCardsMobile" class="md:hidden space-y-2.5"></div>
+
+          <!-- Desktop Admin User Table -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th class="p-3">ชื่อ / อีเมล</th>
+                  <th class="p-3">สิทธิ์</th>
+                  <th class="p-3">สถานะ</th>
+                  <th class="p-3">PIN</th>
+                  <th class="p-3">เข้าล่าสุด / ครั้ง</th>
+                  <th class="p-3 text-right">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="adminMembersTableDesktop" class="divide-y divide-slate-100 text-slate-700"></tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Individual Ledger Inspection Card -->
+        <!-- Individual Member Ledger Inspection Card -->
         <div id="adminInspectLedgerBox" class="card p-4 sm:p-5 space-y-4 border-indigo-200 shadow-xs hidden">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base">
+              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base shrink-0">
                 <i class="ph ph-receipt"></i>
               </div>
-              <div>
-                <h3 class="text-slate-800 text-xs">
+              <div class="min-w-0">
+                <h3 class="text-slate-800 text-xs sm:text-sm truncate">
                   รายการของ: <span id="inspectTargetName" class="text-indigo-700">-</span>
                 </h3>
-                <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[200px]" id="inspectTargetEmail">-</p>
+                <p class="text-[10px] sm:text-[11px] text-slate-400 truncate" id="inspectTargetEmail">-</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -523,8 +736,8 @@
 
     </main>
 
-    <!-- MOBILE BOTTOM NAVIGATION BAR -->
-    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-3 py-1.5 flex items-center justify-around shadow-lg">
+    <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-1.5 py-1.5 flex items-center justify-around shadow-lg">
       <button type="button" onclick="switchTab('record')" id="botTabRecord" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action">
         <i class="ph ph-plus-circle text-xl"></i>
         <span class="text-[10px]">บันทึก</span>
@@ -533,6 +746,11 @@
       <button type="button" onclick="switchTab('history')" id="botTabHistory" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
         <i class="ph ph-clock-counter-clockwise text-xl"></i>
         <span class="text-[10px]">ประวัติ</span>
+      </button>
+
+      <button type="button" onclick="switchTab('payday')" id="botTabPayday" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
+        <i class="ph ph-calendar-check text-xl"></i>
+        <span class="text-[10px]">สรุปงวด</span>
       </button>
 
       <button type="button" onclick="switchTab('settings')" id="botTabSettings" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
@@ -547,7 +765,7 @@
     </nav>
   </div>
 
-  <!-- ADMIN EDIT PIN MODAL -->
+  <!-- ==================== ADMIN EDIT PIN MODAL ==================== -->
   <div id="adminPinModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
     <div class="card p-5 w-full max-w-xs shadow-xl space-y-3">
       <div class="flex items-center gap-2">
@@ -568,7 +786,7 @@
     </div>
   </div>
 
-  <!-- CUSTOM CONFIRMATION MODAL -->
+  <!-- ==================== CUSTOM CONFIRMATION MODAL ==================== -->
   <div id="appDialog" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
     <div class="card p-5 w-full max-w-xs shadow-xl space-y-3">
       <div class="flex items-center gap-2">
@@ -583,16 +801,16 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
   <div id="toastNotification" class="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-auto bg-slate-900 text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
     <i class="ph ph-check-circle text-emerald-400 text-base" id="toastIcon"></i>
     <span id="toastMessage">แจ้งเตือน</span>
   </div>
 
   <script>
-    // -----------------------------------------------------------------
-    // 1. FIREBASE CONFIGURATION & INITIALIZATION
-    // -----------------------------------------------------------------
+    // =========================================================================
+    // 1. FIREBASE CONFIGURATION & INITIALIZATION (Live Production)
+    // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDZZmtoakybe_DnT6_FxZiieRMbuFxtFrw",
       authDomain: "money-diary-37328.firebaseapp.com",
@@ -609,9 +827,11 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // -----------------------------------------------------------------
+    // =========================================================================
     // 2. CONSTANTS & APPLICATION STATE
-    // -----------------------------------------------------------------
+    // =========================================================================
+    const ADMIN_AUTO_EMAIL = 'fg6464@gmail.com';
+
     const CATEGORIES = {
       expense: [
         { name: 'อาหาร', icon: '🍲' },
@@ -633,32 +853,114 @@
       ]
     };
 
+    const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
     let currentUser = null;
     let currentUserProfile = null;
     let currentEntryType = 'expense';
     let currentCategory = CATEGORIES.expense[0];
-    let activePeriod = 'month';
     let currentTab = 'record';
+    let dashboardScope = 'cycle'; // 'cycle' | 'all'
+
+    // Active Payday Cycle Dates (YYYY-MM-DD)
+    let activeCycleStart = '';
+    let activeCycleEnd = '';
+
+    // Data Arrays & Listeners
     let userTransactions = [];
-    let unsubscribeUserTx = null;
-    let unsubscribeAdminUsers = null;
+    let filteredHistoryTransactions = [];
+    let paydayCycleTransactions = [];
     let inspectTransactions = [];
     let currentInspectUid = null;
+    let unsubscribeUserTx = null;
+    let unsubscribeAdminUsers = null;
 
     // PIN State
     let enteredPin = '';
     let publicUsersList = [];
     let isPinVisible = false;
     let adminEditingUser = null;
+    let currentAuthMode = 'pin';
 
-    // -----------------------------------------------------------------
-    // 3. LIFECYCLE & AUTHENTICATION OBSERVER
-    // -----------------------------------------------------------------
+    // =========================================================================
+    // 3. LOCAL DATE HELPERS (Timezone-safe for Thailand +07:00)
+    // =========================================================================
+    function toLocalDateStr(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getTodayStr() {
+      return toLocalDateStr(new Date());
+    }
+
+    // Default civil servant payday cycle: 25th of previous month to 24th of current month
+    function getDefaultPaydayCycle() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 25);
+      const end = new Date(now.getFullYear(), now.getMonth(), 24);
+      return {
+        start: toLocalDateStr(start),
+        end: toLocalDateStr(end)
+      };
+    }
+
+    function formatThaiShortDate(dateStr) {
+      if (!dateStr) return '-';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const day = parseInt(parts[2], 10);
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      if (isNaN(day) || monthIdx < 0 || monthIdx > 11) return dateStr;
+      return `${day} ${THAI_MONTHS_SHORT[monthIdx]}`;
+    }
+
+    function formatCurrency(val) {
+      const num = parseFloat(val) || 0;
+      return '฿' + num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function diffDaysInclusive(startStr, endStr) {
+      if (!startStr || !endStr) return 1;
+      const s = new Date(startStr + 'T00:00:00');
+      const e = new Date(endStr + 'T00:00:00');
+      const diff = Math.floor((e - s) / (1000 * 60 * 60 * 24)) + 1;
+      return Math.max(1, diff);
+    }
+
+    // =========================================================================
+    // 4. LIFECYCLE & AUTHENTICATION OBSERVER
+    // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('txDate').valueAsDate = new Date();
-      document.getElementById('dashTodayDateLabel').innerText = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+      const todayStr = getTodayStr();
+      document.getElementById('txDate').value = todayStr;
+      document.getElementById('dashTodayDateLabel').innerText = formatThaiShortDate(todayStr);
+
+      const defaultCycle = getDefaultPaydayCycle();
+      activeCycleStart = defaultCycle.start;
+      activeCycleEnd = defaultCycle.end;
+      document.getElementById('historyStartDate').value = activeCycleStart;
+      document.getElementById('historyEndDate').value = activeCycleEnd;
+
       renderCategoryButtons();
       loadPublicUsersForPin();
+
+      // Physical keyboard support for Quick PIN screen
+      document.addEventListener('keydown', (e) => {
+        const authScreen = document.getElementById('authScreen');
+        if (authScreen.classList.contains('hidden') || currentAuthMode !== 'pin') return;
+        const tag = (document.activeElement?.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if (/^[0-9]$/.test(e.key)) {
+          pressPinDigit(e.key);
+        } else if (e.key === 'Backspace') {
+          deletePinDigit();
+        } else if (e.key === 'Escape') {
+          clearPin();
+        }
+      });
 
       auth.onAuthStateChanged(async (user) => {
         const loader = document.getElementById('appLoadingScreen');
@@ -667,6 +969,11 @@
         const suspendedScreen = document.getElementById('suspendedScreen');
 
         if (!user) {
+          // If user is already in a quick PIN session without Firebase Auth session, do not kick out
+          if (currentUser && currentUser.isPinSession) {
+            loader.classList.add('hidden');
+            return;
+          }
           currentUser = null;
           currentUserProfile = null;
           if (unsubscribeUserTx) unsubscribeUserTx();
@@ -679,111 +986,150 @@
           return;
         }
 
-        currentUser = user;
-
-        try {
-          const userDocRef = db.collection('users').doc(user.uid);
-          const userSnap = await userDocRef.get();
-
-          let role = 'user';
-          let status = 'active';
-          let displayName = user.displayName || user.email.split('@')[0];
-
-          // Auto-promote fg6464@gmail.com or first user
-          if (user.email === 'fg6464@gmail.com') {
-            role = 'admin';
-          } else if (!userSnap.exists) {
-            const allUsersSnap = await db.collection('users').limit(1).get();
-            if (allUsersSnap.empty) {
-              role = 'admin';
-            }
-          }
-
-          if (!userSnap.exists) {
-            await userDocRef.set({
-              uid: user.uid,
-              email: user.email,
-              displayName: displayName,
-              role: role,
-              status: status,
-              pin: '1234', // Default PIN
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
-              loginCount: 1
-            });
-            currentUserProfile = { uid: user.uid, email: user.email, displayName, role, status, pin: '1234' };
-          } else {
-            const existingData = userSnap.data();
-            if (user.email === 'fg6464@gmail.com' && existingData.role !== 'admin') {
-              await userDocRef.update({ role: 'admin' });
-              existingData.role = 'admin';
-            }
-
-            // Ensure pin field exists
-            if (!existingData.pin) {
-              await userDocRef.update({ pin: '1234' });
-              existingData.pin = '1234';
-            }
-
-            await userDocRef.update({
-              lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
-              loginCount: firebase.firestore.FieldValue.increment(1)
-            });
-
-            currentUserProfile = existingData;
-          }
-
-          if (currentUserProfile.status === 'suspended') {
-            authScreen.classList.add('hidden');
-            mainApp.classList.add('hidden');
-            suspendedScreen.classList.remove('hidden');
-            loader.classList.add('hidden');
-            return;
-          }
-
-          // Remember last user email for quick PIN selection
-          try {
-            sessionStorage.setItem('last_money_diary_email', user.email);
-          } catch (e) {}
-
-          // Update Top Navbar Profile & Badges
-          document.getElementById('navUserEmail').innerText = `${currentUserProfile.displayName || 'ฉัน'} (${user.email})`;
-          const navBadge = document.getElementById('navRoleBadge');
-          const botTabAdmin = document.getElementById('botTabAdmin');
-          const deskTabAdmin = document.getElementById('deskTabAdmin');
-
-          if (currentUserProfile.role === 'admin') {
-            navBadge.innerText = 'Admin';
-            navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200';
-            botTabAdmin.classList.remove('hidden');
-            deskTabAdmin.classList.remove('hidden');
-            listenToAdminUsers();
-          } else {
-            navBadge.innerText = 'User';
-            navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
-            botTabAdmin.classList.add('hidden');
-            deskTabAdmin.classList.add('hidden');
-          }
-
-          authScreen.classList.add('hidden');
-          suspendedScreen.classList.add('hidden');
-          mainApp.classList.remove('hidden');
-
-          updateCurrentPinDisplay();
-          listenToUserTransactions(user.uid);
-          switchTab('record');
-        } catch (err) {
-          console.error("Auth init error:", err);
-          showToast('การเชื่อมต่อมีปัญหา: ' + err.message, 'warning');
-        } finally {
-          loader.classList.add('hidden');
-        }
+        await initializeAuthenticatedUser(user);
       });
     });
 
-    // -----------------------------------------------------------------
-    // 4. PIN QUICK-LOGIN LOGIC
-    // -----------------------------------------------------------------
+    async function initializeAuthenticatedUser(user) {
+      const loader = document.getElementById('appLoadingScreen');
+      const authScreen = document.getElementById('authScreen');
+      const mainApp = document.getElementById('mainApp');
+      const suspendedScreen = document.getElementById('suspendedScreen');
+
+      currentUser = user;
+
+      try {
+        const userDocRef = db.collection('users').doc(user.uid);
+        const userSnap = await userDocRef.get();
+
+        const userEmailLower = (user.email || '').toLowerCase();
+        const defaultCycle = getDefaultPaydayCycle();
+
+        let role = 'user';
+        let status = 'active';
+        let displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'สมาชิก');
+
+        // Auto-promote fg6464@gmail.com or first registered user
+        if (userEmailLower === ADMIN_AUTO_EMAIL) {
+          role = 'admin';
+        } else if (!userSnap.exists) {
+          const allUsersSnap = await db.collection('users').limit(1).get();
+          if (allUsersSnap.empty) {
+            role = 'admin';
+          }
+        }
+
+        if (!userSnap.exists) {
+          const newProfile = {
+            uid: user.uid,
+            email: user.email,
+            displayName: displayName,
+            role: role,
+            status: status,
+            pin: '1234',
+            cycleStartDate: defaultCycle.start,
+            cycleEndDate: defaultCycle.end,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+            loginCount: 1
+          };
+          await userDocRef.set(newProfile);
+          currentUserProfile = newProfile;
+        } else {
+          const existingData = userSnap.data();
+          const updates = {
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+            loginCount: firebase.firestore.FieldValue.increment(1)
+          };
+
+          if (userEmailLower === ADMIN_AUTO_EMAIL && existingData.role !== 'admin') {
+            updates.role = 'admin';
+            existingData.role = 'admin';
+          }
+          if (!existingData.pin) {
+            updates.pin = '1234';
+            existingData.pin = '1234';
+          }
+          if (!existingData.cycleStartDate || !existingData.cycleEndDate) {
+            updates.cycleStartDate = defaultCycle.start;
+            updates.cycleEndDate = defaultCycle.end;
+            existingData.cycleStartDate = defaultCycle.start;
+            existingData.cycleEndDate = defaultCycle.end;
+          }
+
+          await userDocRef.update(updates);
+          currentUserProfile = existingData;
+        }
+
+        if (currentUserProfile.status === 'suspended') {
+          authScreen.classList.add('hidden');
+          mainApp.classList.add('hidden');
+          suspendedScreen.classList.remove('hidden');
+          loader.classList.add('hidden');
+          return;
+        }
+
+        applyLoggedInUI(currentUserProfile);
+      } catch (err) {
+        console.error("Auth init error:", err);
+        showToast('การเชื่อมต่อมีปัญหา: ' + err.message, 'warning');
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    function applyLoggedInUI(profile) {
+      const authScreen = document.getElementById('authScreen');
+      const mainApp = document.getElementById('mainApp');
+      const suspendedScreen = document.getElementById('suspendedScreen');
+
+      // Remember last email for quick PIN selector
+      try {
+        localStorage.setItem('last_money_diary_email', profile.email || '');
+      } catch (e) {}
+
+      // Set active payday cycle from profile (or default 25th prev - 24th curr)
+      const def = getDefaultPaydayCycle();
+      activeCycleStart = profile.cycleStartDate || def.start;
+      activeCycleEnd = profile.cycleEndDate || def.end;
+
+      document.getElementById('paydayStartInput').value = activeCycleStart;
+      document.getElementById('paydayEndInput').value = activeCycleEnd;
+      document.getElementById('historyStartDate').value = activeCycleStart;
+      document.getElementById('historyEndDate').value = activeCycleEnd;
+      updateCycleLabels();
+
+      // Update Navbar
+      document.getElementById('navUserEmail').innerText = `${profile.displayName || 'ฉัน'} (${profile.email || '-'})`;
+      const navBadge = document.getElementById('navRoleBadge');
+      const botTabAdmin = document.getElementById('botTabAdmin');
+      const deskTabAdmin = document.getElementById('deskTabAdmin');
+
+      if (profile.role === 'admin') {
+        navBadge.innerText = 'Admin';
+        navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0';
+        botTabAdmin.classList.remove('hidden');
+        deskTabAdmin.classList.remove('hidden');
+        listenToAdminUsers();
+      } else {
+        navBadge.innerText = 'User';
+        navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0';
+        botTabAdmin.classList.add('hidden');
+        deskTabAdmin.classList.add('hidden');
+      }
+
+      authScreen.classList.add('hidden');
+      suspendedScreen.classList.add('hidden');
+      mainApp.classList.remove('hidden');
+
+      updateCurrentPinDisplay();
+      listenToUserTransactions(profile.uid);
+      switchTab('record');
+    }
+
+    // =========================================================================
+    // 5. QUICK PIN LOGIN SYSTEM
+    // =========================================================================
     async function loadPublicUsersForPin() {
       try {
         const snap = await db.collection('users').get();
@@ -791,17 +1137,23 @@
         const select = document.getElementById('pinUserSelect');
         select.innerHTML = '';
 
-        if (snap.empty) {
-          select.innerHTML = '<option value="">ยังไม่มีสมาชิกในระบบ (กรุณาลงทะเบียน)</option>';
+        let savedEmail = '';
+        try { savedEmail = localStorage.getItem('last_money_diary_email') || ''; } catch (e) {}
+
+        snap.forEach(doc => {
+          const u = { id: doc.id, ...doc.data() };
+          if (u.status !== 'suspended') {
+            publicUsersList.push(u);
+          }
+        });
+
+        if (publicUsersList.length === 0) {
+          select.innerHTML = '<option value="">ยังไม่มีสมาชิกในระบบ (กรุณาสมัครสมาชิก)</option>';
+          updatePinDots();
           return;
         }
 
-        let savedEmail = '';
-        try { savedEmail = sessionStorage.getItem('last_money_diary_email') || ''; } catch (e) {}
-
-        snap.forEach(doc => {
-          const u = doc.data();
-          publicUsersList.push({ id: doc.id, ...u });
+        publicUsersList.forEach(u => {
           const opt = document.createElement('option');
           opt.value = u.email;
           opt.innerText = `${u.displayName || 'สมาชิก'} (${u.email})`;
@@ -814,26 +1166,27 @@
         onPinUserChanged();
       } catch (err) {
         console.error("Error loading users for PIN:", err);
+        const select = document.getElementById('pinUserSelect');
+        select.innerHTML = '<option value="">กรุณาเข้าสู่ระบบด้วยอีเมล/รหัสผ่านก่อน</option>';
       }
     }
 
     function onPinUserChanged() {
       clearPin();
-      const errBox = document.getElementById('pinErrorMsg');
-      errBox.classList.add('hidden');
+      document.getElementById('pinErrorMsg').classList.add('hidden');
     }
 
     function pressPinDigit(digit) {
-      if (enteredPin.length >= 6) return;
-      enteredPin += digit;
-      updatePinDots();
-
       const selectedEmail = document.getElementById('pinUserSelect').value;
       const targetUser = publicUsersList.find(u => u.email === selectedEmail);
       const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
 
-      if (enteredPin.length === targetPinLen || enteredPin.length === 6) {
-        setTimeout(verifyAndLoginWithPin, 100);
+      if (enteredPin.length >= targetPinLen) return;
+      enteredPin += digit;
+      updatePinDots();
+
+      if (enteredPin.length === targetPinLen) {
+        setTimeout(verifyAndLoginWithPin, 120);
       }
     }
 
@@ -853,6 +1206,8 @@
       const selectedEmail = document.getElementById('pinUserSelect').value;
       const targetUser = publicUsersList.find(u => u.email === selectedEmail);
       const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
+
+      document.getElementById('pinPromptHint').innerText = `กดรหัส PIN ${targetPinLen} หลักเพื่อเข้าใช้งานทันที`;
 
       const container = document.getElementById('pinDotsContainer');
       container.innerHTML = '';
@@ -877,71 +1232,69 @@
 
       const targetUser = publicUsersList.find(u => u.email === selectedEmail);
       if (!targetUser) {
-        errBox.innerText = 'ไม่พบข้อมูลผู้ใช้';
+        errBox.innerText = 'ไม่พบข้อมูลผู้ใช้ในระบบ';
         errBox.classList.remove('hidden');
         clearPin();
         return;
       }
 
-      const userPin = targetUser.pin || '1234';
-
-      if (enteredPin === userPin) {
-        // Authenticate user session
-        showToast(`เข้าสู่ระบบสำเร็จ: ${targetUser.displayName || targetUser.email}`);
-        
-        let pwd = '';
-        try { pwd = sessionStorage.getItem(`_pwd_${selectedEmail}`); } catch (e) {}
-
-        if (pwd) {
-          try {
-            await auth.signInWithEmailAndPassword(selectedEmail, pwd);
-            clearPin();
-            return;
-          } catch (e) {
-            console.warn("Direct pass fail, falling back to cached profile", e);
-          }
-        }
-
-        // Seamless Quick-Access Fallback for PIN mode
-        currentUser = { uid: targetUser.uid, email: targetUser.email, displayName: targetUser.displayName };
-        currentUserProfile = targetUser;
-
-        document.getElementById('authScreen').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        document.getElementById('navUserEmail').innerText = `${targetUser.displayName || 'ฉัน'} (${targetUser.email})`;
-
-        const navBadge = document.getElementById('navRoleBadge');
-        const botTabAdmin = document.getElementById('botTabAdmin');
-        const deskTabAdmin = document.getElementById('deskTabAdmin');
-
-        if (targetUser.role === 'admin') {
-          navBadge.innerText = 'Admin';
-          navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200';
-          botTabAdmin.classList.remove('hidden');
-          deskTabAdmin.classList.remove('hidden');
-          listenToAdminUsers();
-        } else {
-          navBadge.innerText = 'User';
-          navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
-          botTabAdmin.classList.add('hidden');
-          deskTabAdmin.classList.add('hidden');
-        }
-
-        updateCurrentPinDisplay();
-        listenToUserTransactions(targetUser.uid);
-        switchTab('record');
+      if (targetUser.status === 'suspended') {
+        errBox.innerText = 'บัญชีนี้ถูกระงับการใช้งาน';
+        errBox.classList.remove('hidden');
         clearPin();
-      } else {
+        return;
+      }
+
+      const userPin = String(targetUser.pin || '1234');
+      if (enteredPin !== userPin) {
         errBox.innerText = 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
         errBox.classList.remove('hidden');
         clearPin();
+        return;
       }
+
+      // PIN matched! Attempt Firebase Auth with saved device session credential if present
+      let cachedPwd = '';
+      try { cachedPwd = sessionStorage.getItem(`_md_pwd_${selectedEmail}`) || ''; } catch (e) {}
+
+      if (cachedPwd) {
+        try {
+          await auth.signInWithEmailAndPassword(selectedEmail, cachedPwd);
+          clearPin();
+          showToast(`ยินดีต้อนรับ ${targetUser.displayName || targetUser.email}`);
+          return;
+        } catch (e) {
+          console.warn("Cached credential login failed, using quick PIN profile session:", e);
+        }
+      }
+
+      // Seamless Quick-Access PIN session
+      currentUser = {
+        uid: targetUser.uid || targetUser.id,
+        email: targetUser.email,
+        displayName: targetUser.displayName,
+        isPinSession: true
+      };
+      currentUserProfile = { ...targetUser, uid: targetUser.uid || targetUser.id };
+
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+          loginCount: firebase.firestore.FieldValue.increment(1)
+        });
+      } catch (e) {
+        // Non-blocking if Firestore rules require auth for write
+        console.warn("Quick PIN login metadata update skipped:", e.message);
+      }
+
+      clearPin();
+      showToast(`เข้าสู่ระบบสำเร็จ: ${targetUser.displayName || targetUser.email}`);
+      applyLoggedInUI(currentUserProfile);
     }
 
-    // -----------------------------------------------------------------
-    // 5. AUTH VIEW SWITCHER (PIN / LOGIN / REGISTER)
-    // -----------------------------------------------------------------
-    let currentAuthMode = 'pin';
+    // =========================================================================
+    // 6. AUTH VIEW SWITCHER & PASSWORD LOGIN / REGISTER
+    // =========================================================================
     function switchAuthView(mode) {
       currentAuthMode = mode;
       const tabPin = document.getElementById('tabBtnPin');
@@ -958,25 +1311,28 @@
       errBox.classList.add('hidden');
       pinErrBox.classList.add('hidden');
 
-      tabPin.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
-      tabLogin.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
-      tabReg.className = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
+      const inactiveCls = 'py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center';
+      const activeCls = 'py-2 rounded-lg bg-white text-slate-800 shadow-sm tap-action text-center';
+
+      tabPin.className = inactiveCls;
+      tabLogin.className = inactiveCls;
+      tabReg.className = inactiveCls;
 
       if (mode === 'pin') {
-        tabPin.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        tabPin.className = activeCls;
         viewPin.classList.remove('hidden');
         viewForm.classList.add('hidden');
         clearPin();
         loadPublicUsersForPin();
       } else if (mode === 'login') {
-        tabLogin.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        tabLogin.className = activeCls;
         viewPin.classList.add('hidden');
         viewForm.classList.remove('hidden');
         nameGroup.classList.add('hidden');
         pinSetupGroup.classList.add('hidden');
         submitBtn.innerHTML = '<i class="ph ph-sign-in text-base"></i><span>เข้าสู่ระบบด้วยรหัสผ่าน</span>';
       } else if (mode === 'register') {
-        tabReg.className = 'py-2 rounded-lg bg-white text-slate-800 shadow-xs tap-action text-center';
+        tabReg.className = activeCls;
         viewPin.classList.add('hidden');
         viewForm.classList.remove('hidden');
         nameGroup.classList.remove('hidden');
@@ -990,7 +1346,8 @@
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
       const displayName = document.getElementById('authDisplayName').value.trim();
-      const initialPin = (document.getElementById('authInitialPin').value.trim()) || '1234';
+      const initialPinRaw = document.getElementById('authInitialPin').value.trim();
+      const initialPin = /^\d{4,6}$/.test(initialPinRaw) ? initialPinRaw : '1234';
       const errBox = document.getElementById('authErrorMsg');
       const submitBtn = document.getElementById('authSubmitBtn');
 
@@ -1004,21 +1361,33 @@
           if (displayName) {
             await cred.user.updateProfile({ displayName: displayName });
           }
+
+          let role = 'user';
+          if (email.toLowerCase() === ADMIN_AUTO_EMAIL) {
+            role = 'admin';
+          } else {
+            const existingUsers = await db.collection('users').limit(1).get();
+            if (existingUsers.empty) role = 'admin';
+          }
+
+          const def = getDefaultPaydayCycle();
           await db.collection('users').doc(cred.user.uid).set({
             uid: cred.user.uid,
             email: email,
             displayName: displayName || email.split('@')[0],
-            role: email === 'fg6464@gmail.com' ? 'admin' : 'user',
+            role: role,
             status: 'active',
             pin: initialPin,
+            cycleStartDate: def.start,
+            cycleEndDate: def.end,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
             loginCount: 1
           });
-          try { sessionStorage.setItem(`_pwd_${email}`, password); } catch (e) {}
+          try { sessionStorage.setItem(`_md_pwd_${email}`, password); } catch (ex) {}
         } else {
           await auth.signInWithEmailAndPassword(email, password);
-          try { sessionStorage.setItem(`_pwd_${email}`, password); } catch (e) {}
+          try { sessionStorage.setItem(`_md_pwd_${email}`, password); } catch (ex) {}
         }
       } catch (err) {
         errBox.innerText = `ข้อผิดพลาด: ${err.message}`;
@@ -1029,114 +1398,104 @@
       }
     }
 
-    function handleLogout() {
-      auth.signOut();
+    async function handleLogout() {
+      if (unsubscribeUserTx) unsubscribeUserTx();
+      if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+      currentUser = null;
+      currentUserProfile = null;
+      try {
+        await auth.signOut();
+      } catch (e) {}
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('suspendedScreen').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
       switchAuthView('pin');
     }
 
-    // -----------------------------------------------------------------
-    // 6. USER PIN SETTINGS
-    // -----------------------------------------------------------------
-    function updateCurrentPinDisplay() {
-      const pinDisp = document.getElementById('currentPinDisplay');
-      const pin = (currentUserProfile && currentUserProfile.pin) ? currentUserProfile.pin : '1234';
-      if (isPinVisible) {
-        pinDisp.innerText = pin;
-      } else {
-        pinDisp.innerText = '•'.repeat(pin.length);
-      }
-    }
-
-    function togglePinVisibility() {
-      isPinVisible = !isPinVisible;
-      const eyeBtn = document.getElementById('btnTogglePinEye');
-      eyeBtn.innerHTML = isPinVisible ? '<i class="ph ph-eye-slash text-base"></i>' : '<i class="ph ph-eye text-base"></i>';
-      updateCurrentPinDisplay();
-    }
-
-    async function handleUpdateSelfPin() {
-      if (!currentUser) return;
-      const input = document.getElementById('inputNewPin');
-      const newPin = input.value.trim();
-
-      if (!/^\d{4,6}$/.test(newPin)) {
-        showToast('กรุณาระบุรหัส PIN เป็นตัวเลข 4 หรือ 6 หลัก', 'warning');
-        input.focus();
-        return;
-      }
-
-      try {
-        await db.collection('users').doc(currentUser.uid).update({ pin: newPin });
-        if (currentUserProfile) currentUserProfile.pin = newPin;
-        updateCurrentPinDisplay();
-        input.value = '';
-        showToast('อัปเดตรหัส PIN เรียบร้อยแล้ว');
-      } catch (err) {
-        showToast('อัปเดตไม่สำเร็จ: ' + err.message, 'warning');
-      }
-    }
-
-    // -----------------------------------------------------------------
-    // 7. NAVIGATION TAB SWITCHER
-    // -----------------------------------------------------------------
+    // =========================================================================
+    // 7. NAVIGATION & DASHBOARD SCOPE TOGGLE
+    // =========================================================================
     function switchTab(tab) {
       currentTab = tab;
-      const recContent = document.getElementById('tabContentRecord');
-      const hisContent = document.getElementById('tabContentHistory');
-      const setContent = document.getElementById('tabContentSettings');
-      const admContent = document.getElementById('tabContentAdmin');
 
-      recContent.classList.add('hidden');
-      hisContent.classList.add('hidden');
-      setContent.classList.add('hidden');
-      admContent.classList.add('hidden');
+      const tabs = ['record', 'history', 'payday', 'settings', 'admin'];
+      tabs.forEach(t => {
+        const cap = t.charAt(0).toUpperCase() + t.slice(1);
+        const contentEl = document.getElementById('tabContent' + cap);
+        const botEl = document.getElementById('botTab' + cap);
+        const deskEl = document.getElementById('deskTab' + cap);
 
-      const botRec = document.getElementById('botTabRecord');
-      const botHis = document.getElementById('botTabHistory');
-      const botSet = document.getElementById('botTabSettings');
-      const botAdm = document.getElementById('botTabAdmin');
+        if (contentEl) contentEl.classList.add('hidden');
+        if (botEl) {
+          botEl.classList.remove('text-emerald-600', 'text-indigo-600');
+          botEl.classList.add('text-slate-400');
+        }
+        if (deskEl) {
+          deskEl.classList.remove('bg-white', 'text-slate-800', 'text-indigo-700', 'shadow-sm');
+          deskEl.classList.add(t === 'admin' ? 'text-indigo-700' : 'text-slate-500');
+        }
+      });
 
-      botRec.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
-      botHis.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
-      botSet.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
-      botAdm.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action';
+      const activeCap = tab.charAt(0).toUpperCase() + tab.slice(1);
+      const activeContent = document.getElementById('tabContent' + activeCap);
+      const activeBot = document.getElementById('botTab' + activeCap);
+      const activeDesk = document.getElementById('deskTab' + activeCap);
 
-      const dRec = document.getElementById('deskTabRecord');
-      const dHis = document.getElementById('deskTabHistory');
-      const dSet = document.getElementById('deskTabSettings');
-      const dAdm = document.getElementById('deskTabAdmin');
+      if (activeContent) activeContent.classList.remove('hidden');
+      if (activeBot) {
+        activeBot.classList.remove('text-slate-400');
+        activeBot.classList.add(tab === 'admin' ? 'text-indigo-600' : 'text-emerald-600');
+      }
+      if (activeDesk) {
+        activeDesk.classList.remove('text-slate-500');
+        activeDesk.classList.add('bg-white', 'shadow-sm', tab === 'admin' ? 'text-indigo-700' : 'text-slate-800');
+      }
 
-      dRec.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-      dHis.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-      dSet.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-      dAdm.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-
-      if (tab === 'record') {
-        recContent.classList.remove('hidden');
-        botRec.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
-        dRec.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
-      } else if (tab === 'history') {
-        hisContent.classList.remove('hidden');
-        botHis.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
-        dHis.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
+      if (tab === 'history') {
         renderUserHistory();
+      } else if (tab === 'payday') {
+        renderPaydaySummary();
       } else if (tab === 'settings') {
-        setContent.classList.remove('hidden');
-        botSet.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action';
-        dSet.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-xs tap-action';
         updateCurrentPinDisplay();
-      } else if (tab === 'admin') {
-        admContent.classList.remove('hidden');
-        botAdm.className = 'flex-1 py-1 flex flex-col items-center gap-0.5 text-indigo-600 tap-action';
-        dAdm.className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-xs tap-action';
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // -----------------------------------------------------------------
+    function setDashboardScope(scope) {
+      dashboardScope = scope;
+      const btnCycle = document.getElementById('btnScopeCycle');
+      const btnAll = document.getElementById('btnScopeAll');
+      const badge = document.getElementById('dashActiveCycleBadge');
+
+      if (scope === 'cycle') {
+        btnCycle.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action';
+        btnAll.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+        badge.classList.remove('hidden');
+        document.getElementById('dashBalanceLabel').innerText = 'คงเหลืองวดนี้';
+        document.getElementById('dashIncomeLabel').innerText = 'รายรับงวดนี้';
+        document.getElementById('dashExpenseLabel').innerText = 'รายจ่ายงวดนี้';
+      } else {
+        btnAll.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action';
+        btnCycle.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
+        badge.classList.add('hidden');
+        document.getElementById('dashBalanceLabel').innerText = 'ยอดคงเหลือรวม';
+        document.getElementById('dashIncomeLabel').innerText = 'รายรับทั้งหมด';
+        document.getElementById('dashExpenseLabel').innerText = 'รายจ่ายทั้งหมด';
+      }
+
+      updateUserSummary();
+    }
+
+    function updateCycleLabels() {
+      const label = `${formatThaiShortDate(activeCycleStart)} - ${formatThaiShortDate(activeCycleEnd)}`;
+      document.getElementById('dashCycleRangeLabel').innerText = label;
+      document.getElementById('historyPaydayRangeText').innerText = label;
+    }
+
+    // =========================================================================
     // 8. RECORD FORM & CATEGORIES
-    // -----------------------------------------------------------------
+    // =========================================================================
     function renderCategoryButtons() {
       const container = document.getElementById('categoryContainer');
       container.innerHTML = '';
@@ -1169,11 +1528,11 @@
       const incBtn = document.getElementById('btnTypeIncome');
 
       if (type === 'expense') {
-        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action';
+        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-sm tap-action';
         incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
         currentCategory = CATEGORIES.expense[0];
       } else {
-        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-emerald-600 shadow-xs tap-action';
+        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-emerald-600 shadow-sm tap-action';
         expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
         currentCategory = CATEGORIES.income[0];
       }
@@ -1183,7 +1542,8 @@
     function quickAddAmount(num) {
       const el = document.getElementById('txAmount');
       const val = parseFloat(el.value) || 0;
-      el.value = (val + num).toFixed(val % 1 === 0 && num % 1 === 0 ? 0 : 2);
+      const sum = val + num;
+      el.value = Number.isInteger(sum) ? sum : sum.toFixed(2);
     }
 
     function clearAmount() {
@@ -1235,9 +1595,9 @@
       }
     }
 
-    // -----------------------------------------------------------------
-    // 9. TRANSACTION LISTENER & HISTORY CARDS
-    // -----------------------------------------------------------------
+    // =========================================================================
+    // 9. REAL-TIME TRANSACTIONS LISTENER & DASHBOARD SUMMARY
+    // =========================================================================
     function listenToUserTransactions(uid) {
       if (unsubscribeUserTx) unsubscribeUserTx();
       unsubscribeUserTx = db.collection('users').doc(uid).collection('transactions')
@@ -1249,6 +1609,9 @@
           });
           updateUserSummary();
           renderUserHistory();
+          if (currentTab === 'payday') {
+            renderPaydaySummary();
+          }
         }, err => {
           console.error("Tx listener error:", err);
           showToast('โหลดรายการไม่สำเร็จ: ' + err.message, 'warning');
@@ -1259,56 +1622,93 @@
       let income = 0;
       let expense = 0;
       let todayExpense = 0;
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getTodayStr();
 
       userTransactions.forEach(t => {
         const val = parseFloat(t.amount) || 0;
+        const tDate = t.date || '';
+
+        if (t.type === 'expense' && tDate === todayStr) {
+          todayExpense += val;
+        }
+
+        // Filter by active payday cycle if scope is 'cycle'
+        if (dashboardScope === 'cycle') {
+          if (!tDate || tDate < activeCycleStart || tDate > activeCycleEnd) {
+            return;
+          }
+        }
+
         if (t.type === 'income') {
           income += val;
         } else {
           expense += val;
-          if (t.date === todayStr) todayExpense += val;
         }
       });
 
       const balance = income - expense;
-      document.getElementById('dashBalance').innerText = '฿' + balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('dashIncome').innerText = '฿' + income.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('dashExpense').innerText = '฿' + expense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('dashTodayExpense').innerText = '฿' + todayExpense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('dashBalance').innerText = formatCurrency(balance);
+      document.getElementById('dashIncome').innerText = formatCurrency(income);
+      document.getElementById('dashExpense').innerText = formatCurrency(expense);
+      document.getElementById('dashTodayExpense').innerText = formatCurrency(todayExpense);
     }
 
-    function setPeriodFilter(p) {
-      activePeriod = p;
-      ['all', 'today', 'week', 'month'].forEach(k => {
-        const id = 'btnPeriod' + k.charAt(0).toUpperCase() + k.slice(1);
-        const b = document.getElementById(id);
-        if (k === p) {
-          b.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs';
-        } else {
-          b.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800';
-        }
-      });
+    // =========================================================================
+    // 10. HISTORY TAB (With Payday Cycle & Custom Date Range Filter)
+    // =========================================================================
+    function onHistoryPeriodChange() {
+      const period = document.getElementById('filterPeriod').value;
+      const customRow = document.getElementById('historyCustomDateRow');
+      const paydayHint = document.getElementById('historyPaydayHint');
+
+      if (period === 'custom') {
+        customRow.classList.remove('hidden');
+      } else {
+        customRow.classList.add('hidden');
+      }
+
+      if (period === 'payday') {
+        paydayHint.classList.remove('hidden');
+      } else {
+        paydayHint.classList.add('hidden');
+      }
+
       renderUserHistory();
     }
 
     function renderUserHistory() {
       const keyword = (document.getElementById('filterSearch')?.value || '').trim().toLowerCase();
+      const period = document.getElementById('filterPeriod')?.value || 'payday';
       const typeFilter = document.getElementById('filterType')?.value || 'all';
+      const customStart = document.getElementById('historyStartDate')?.value || '';
+      const customEnd = document.getElementById('historyEndDate')?.value || '';
 
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const d = new Date(now);
-      const dayOfWeek = d.getDay() || 7;
-      d.setDate(d.getDate() - dayOfWeek + 1);
-      const mondayStr = d.toISOString().split('T')[0];
+      const todayStr = toLocalDateStr(now);
+
+      const monday = new Date(now);
+      const dayOfWeek = monday.getDay() || 7;
+      monday.setDate(monday.getDate() - dayOfWeek + 1);
+      const mondayStr = toLocalDateStr(monday);
+
       const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-      const filtered = userTransactions.filter(item => {
+      filteredHistoryTransactions = userTransactions.filter(item => {
+        const d = item.date || '';
         if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-        if (activePeriod === 'today' && item.date !== todayStr) return false;
-        if (activePeriod === 'week' && (item.date < mondayStr || item.date > todayStr)) return false;
-        if (activePeriod === 'month' && (!item.date || !item.date.startsWith(monthPrefix))) return false;
+
+        if (period === 'payday') {
+          if (!d || d < activeCycleStart || d > activeCycleEnd) return false;
+        } else if (period === 'custom') {
+          if (customStart && d < customStart) return false;
+          if (customEnd && d > customEnd) return false;
+        } else if (period === 'today') {
+          if (d !== todayStr) return false;
+        } else if (period === 'week') {
+          if (!d || d < mondayStr || d > todayStr) return false;
+        } else if (period === 'month') {
+          if (!d || !d.startsWith(monthPrefix)) return false;
+        }
 
         if (keyword) {
           const matchCat = (item.category || '').toLowerCase().includes(keyword);
@@ -1318,31 +1718,35 @@
         return true;
       });
 
-      const container = document.getElementById('userTxListContainer');
+      const mobileContainer = document.getElementById('userTxCardsMobile');
+      const desktopTbody = document.getElementById('userTxTableBodyDesktop');
       const emptyEl = document.getElementById('userTxEmpty');
       const countEl = document.getElementById('historyCountLabel');
-      const subIncEl = document.getElementById('subtotalIncome');
-      const subExpEl = document.getElementById('subtotalExpense');
 
-      countEl.innerText = `${filtered.length} รายการ`;
-      container.innerHTML = '';
+      countEl.innerText = `${filteredHistoryTransactions.length} รายการ`;
+      mobileContainer.innerHTML = '';
+      desktopTbody.innerHTML = '';
 
       let subInc = 0;
       let subExp = 0;
 
-      if (filtered.length === 0) {
+      if (filteredHistoryTransactions.length === 0) {
         emptyEl.classList.remove('hidden');
-        subIncEl.innerText = '฿0.00';
-        subExpEl.innerText = '฿0.00';
+        document.getElementById('subtotalIncome').innerText = '฿0.00';
+        document.getElementById('subtotalExpense').innerText = '฿0.00';
+        document.getElementById('subtotalNet').innerText = '฿0.00';
         return;
       }
       emptyEl.classList.add('hidden');
 
-      filtered.forEach(item => {
+      filteredHistoryTransactions.forEach(item => {
         const isExp = item.type === 'expense';
         const amt = parseFloat(item.amount) || 0;
         if (isExp) subExp += amt; else subInc += amt;
+        const amtStr = `${isExp ? '-' : '+'}${formatCurrency(amt)}`;
+        const amtColor = isExp ? 'text-rose-600' : 'text-emerald-600';
 
+        // Mobile Card
         const card = document.createElement('div');
         card.className = 'p-3 bg-white hover:bg-slate-50/80 border border-slate-100 rounded-2xl flex items-center justify-between gap-3 transition-colors';
         card.innerHTML = `
@@ -1353,31 +1757,48 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
-                <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
                   ${isExp ? 'จ่าย' : 'รับ'}
                 </span>
               </div>
               <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
             </div>
           </div>
-
           <div class="flex items-center gap-2 shrink-0">
             <div class="text-right">
-              <div class="text-xs sm:text-sm whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">
-                ${isExp ? '-' : '+'}฿${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <span class="text-[10px] text-slate-400 block">${item.date || '-'}</span>
+              <div class="text-xs sm:text-sm whitespace-nowrap ${amtColor}">${amtStr}</div>
+              <span class="text-[10px] text-slate-400 block">${formatThaiShortDate(item.date)}</span>
             </div>
             <button type="button" onclick="handleDeleteTransaction('${item.id}')" class="p-2 text-slate-300 hover:text-rose-600 rounded-xl hover:bg-rose-50 tap-action" title="ลบรายการ">
               <i class="ph ph-trash text-base"></i>
             </button>
           </div>
         `;
-        container.appendChild(card);
+        mobileContainer.appendChild(card);
+
+        // Desktop Row
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/70 transition-colors';
+        tr.innerHTML = `
+          <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || '-'}</td>
+          <td class="p-3">
+            <span class="text-[10px] px-2 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'รายจ่าย' : 'รายรับ'}</span>
+          </td>
+          <td class="p-3 text-slate-700 whitespace-nowrap">${item.icon || ''} ${escapeHtml(item.category)}</td>
+          <td class="p-3 text-slate-400 max-w-[200px] truncate">${escapeHtml(item.note) || '-'}</td>
+          <td class="p-3 text-right whitespace-nowrap ${amtColor}">${amtStr}</td>
+          <td class="p-3 text-center">
+            <button type="button" onclick="handleDeleteTransaction('${item.id}')" class="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 tap-action" title="ลบรายการ">
+              <i class="ph ph-trash text-sm"></i>
+            </button>
+          </td>
+        `;
+        desktopTbody.appendChild(tr);
       });
 
-      subIncEl.innerText = '฿' + subInc.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      subExpEl.innerText = '฿' + subExp.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('subtotalIncome').innerText = formatCurrency(subInc);
+      document.getElementById('subtotalExpense').innerText = formatCurrency(subExp);
+      document.getElementById('subtotalNet').innerText = formatCurrency(subInc - subExp);
     }
 
     function handleDeleteTransaction(id) {
@@ -1391,31 +1812,306 @@
       });
     }
 
-    function exportUserCSV() {
-      if (userTransactions.length === 0) {
+    function exportFilteredHistoryCSV() {
+      const list = filteredHistoryTransactions.length > 0 ? filteredHistoryTransactions : userTransactions;
+      if (list.length === 0) {
         showToast('ไม่มีรายการให้ส่งออก', 'warning');
         return;
       }
-      let csv = '\uFEFFวันที่,ประเภท,หมวดหมู่,โน้ต,จำนวนเงิน(บาท)\n';
-      userTransactions.forEach(t => {
-        const typeText = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
-        const safeNote = (t.note || '').replace(/"/g, '""');
-        csv += `"${t.date || ''}","${typeText}","${t.category || ''}","${safeNote}","${t.amount || 0}"\n`;
-      });
+      const csv = buildTransactionsCSV(list);
       const name = (currentUserProfile?.displayName || 'user').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
-      const today = new Date().toISOString().split('T')[0];
-      downloadCsv(csv, `money_diary_${name}_${today}.csv`);
-      showToast('ส่งออก Excel สำเร็จ');
+      downloadCsv(csv, `money_diary_${name}_${getTodayStr()}.csv`);
+      showToast('ส่งออก Excel (CSV) สำเร็จ');
     }
 
-    // -----------------------------------------------------------------
-    // 10. ADMIN PANEL: MEMBER MANAGEMENT & PIN EDITING
-    // -----------------------------------------------------------------
+    // =========================================================================
+    // 11. PAYDAY CYCLE SUMMARY (รอบเงินเดือน & เลือกวันที่อิสระ)
+    // =========================================================================
+    function applyPaydayPreset(preset) {
+      const now = new Date();
+      let start, end;
+
+      if (preset === '25to24') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 25);
+        end = new Date(now.getFullYear(), now.getMonth(), 24);
+      } else if (preset === 'calendarMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (preset === 'last30') {
+        end = new Date(now);
+        start = new Date(now);
+        start.setDate(end.getDate() - 29);
+      }
+
+      document.getElementById('paydayStartInput').value = toLocalDateStr(start);
+      document.getElementById('paydayEndInput').value = toLocalDateStr(end);
+      renderPaydaySummary();
+    }
+
+    async function saveCurrentPaydayCycle() {
+      if (!currentUser) return;
+      const startVal = document.getElementById('paydayStartInput').value;
+      const endVal = document.getElementById('paydayEndInput').value;
+
+      if (!startVal || !endVal) {
+        showToast('กรุณาเลือกวันเริ่มงวดและวันสิ้นสุดงวดให้ครบ', 'warning');
+        return;
+      }
+      if (startVal > endVal) {
+        showToast('วันเริ่มงวดต้องไม่มากกว่าวันสิ้นสุดงวด', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btnSaveCycle');
+      btn.disabled = true;
+
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          cycleStartDate: startVal,
+          cycleEndDate: endVal
+        });
+
+        activeCycleStart = startVal;
+        activeCycleEnd = endVal;
+        if (currentUserProfile) {
+          currentUserProfile.cycleStartDate = startVal;
+          currentUserProfile.cycleEndDate = endVal;
+        }
+
+        updateCycleLabels();
+        updateUserSummary();
+        renderUserHistory();
+        showToast(`บันทึกงวดปัจจุบัน (${formatThaiShortDate(startVal)} - ${formatThaiShortDate(endVal)}) เรียบร้อย`);
+      } catch (err) {
+        showToast('บันทึกงวดไม่สำเร็จ: ' + err.message, 'warning');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderPaydaySummary() {
+      const startVal = document.getElementById('paydayStartInput').value || activeCycleStart;
+      const endVal = document.getElementById('paydayEndInput').value || activeCycleEnd;
+
+      document.getElementById('paydayPeriodLabel').innerText =
+        `${formatThaiShortDate(startVal)} - ${formatThaiShortDate(endVal)}`;
+
+      if (startVal > endVal) {
+        showToast('วันเริ่มงวดมากกว่าวันสิ้นสุดงวด กรุณาเลือกใหม่', 'warning');
+        return;
+      }
+
+      paydayCycleTransactions = userTransactions.filter(t => {
+        const d = t.date || '';
+        return d && d >= startVal && d <= endVal;
+      });
+
+      let totalInc = 0;
+      let totalExp = 0;
+      let incCount = 0;
+      let expCount = 0;
+      const categoryTotals = {};
+
+      paydayCycleTransactions.forEach(t => {
+        const val = parseFloat(t.amount) || 0;
+        if (t.type === 'income') {
+          totalInc += val;
+          incCount++;
+        } else {
+          totalExp += val;
+          expCount++;
+          const key = t.category || 'อื่นๆ';
+          if (!categoryTotals[key]) {
+            categoryTotals[key] = { name: key, icon: t.icon || '✨', amount: 0, count: 0 };
+          }
+          categoryTotals[key].amount += val;
+          categoryTotals[key].count++;
+        }
+      });
+
+      const balance = totalInc - totalExp;
+      const totalDays = diffDaysInclusive(startVal, endVal);
+      const todayStr = getTodayStr();
+
+      // Calculate remaining days if end date is in the future
+      let daysInfoText = `รวม ${totalDays} วัน`;
+      if (endVal > todayStr) {
+        const remDays = diffDaysInclusive(todayStr, endVal) - 1;
+        daysInfoText = `รวม ${totalDays} วัน (เหลืออีก ${remDays} วัน)`;
+      }
+
+      // Average daily expense across elapsed days within the period (or full period if past)
+      let elapsedDays = totalDays;
+      if (todayStr >= startVal && todayStr < endVal) {
+        elapsedDays = diffDaysInclusive(startVal, todayStr);
+      }
+      const avgDaily = totalExp / Math.max(1, elapsedDays);
+
+      const saveRate = totalInc > 0 ? Math.round((balance / totalInc) * 100) : 0;
+
+      document.getElementById('paydayIncome').innerText = formatCurrency(totalInc);
+      document.getElementById('paydayIncomeCount').innerText = `${incCount} รายการ`;
+      document.getElementById('paydayExpense').innerText = formatCurrency(totalExp);
+      document.getElementById('paydayExpenseCount').innerText = `${expCount} รายการ`;
+      document.getElementById('paydayBalance').innerText = formatCurrency(balance);
+      document.getElementById('paydayBalance').className = `text-lg sm:text-xl truncate ${balance < 0 ? 'text-rose-600' : 'text-slate-800'}`;
+      document.getElementById('paydaySaveRate').innerText = totalInc > 0 ? `คงเหลือ ${saveRate}% ของรายรับ` : 'ยังไม่มีรายรับในงวดนี้';
+      document.getElementById('paydayAvgDaily').innerText = formatCurrency(avgDaily);
+      document.getElementById('paydayDaysInfo').innerText = daysInfoText;
+
+      // Render Category Breakdown sorted highest to lowest
+      const breakdownEl = document.getElementById('paydayCategoryBreakdown');
+      const breakdownEmpty = document.getElementById('paydayCategoryEmpty');
+      breakdownEl.innerHTML = '';
+
+      const sortedCats = Object.values(categoryTotals).sort((a, b) => b.amount - a.amount);
+      if (sortedCats.length === 0) {
+        breakdownEmpty.classList.remove('hidden');
+      } else {
+        breakdownEmpty.classList.add('hidden');
+        sortedCats.forEach(cat => {
+          const pct = totalExp > 0 ? ((cat.amount / totalExp) * 100) : 0;
+          const pctStr = pct.toFixed(1);
+          const row = document.createElement('div');
+          row.className = 'space-y-1.5';
+          row.innerHTML = `
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-base">${cat.icon}</span>
+                <span class="text-slate-700 truncate">${escapeHtml(cat.name)}</span>
+                <span class="text-[10px] text-slate-400">(${cat.count})</span>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-rose-600">${formatCurrency(cat.amount)}</span>
+                <span class="text-[10px] text-slate-400 w-10 text-right">${pctStr}%</span>
+              </div>
+            </div>
+            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-rose-400 rounded-full transition-all duration-300" style="width: ${Math.min(100, pct)}%"></div>
+            </div>
+          `;
+          breakdownEl.appendChild(row);
+        });
+      }
+
+      // Render Transaction List for Cycle
+      const mobileList = document.getElementById('paydayTxCardsMobile');
+      const desktopTbody = document.getElementById('paydayTxTableBodyDesktop');
+      const emptyTx = document.getElementById('paydayTxEmpty');
+      document.getElementById('paydayTxCountLabel').innerText = `${paydayCycleTransactions.length} รายการ`;
+
+      mobileList.innerHTML = '';
+      desktopTbody.innerHTML = '';
+
+      if (paydayCycleTransactions.length === 0) {
+        emptyTx.classList.remove('hidden');
+        return;
+      }
+      emptyTx.classList.add('hidden');
+
+      paydayCycleTransactions.forEach(item => {
+        const isExp = item.type === 'expense';
+        const amt = parseFloat(item.amount) || 0;
+        const amtStr = `${isExp ? '-' : '+'}${formatCurrency(amt)}`;
+        const amtColor = isExp ? 'text-rose-600' : 'text-emerald-600';
+
+        // Mobile Card
+        const card = document.createElement('div');
+        card.className = 'p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-lg shrink-0 ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+              ${item.icon || (isExp ? '🍲' : '💵')}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'จ่าย' : 'รับ'}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs whitespace-nowrap ${amtColor}">${amtStr}</div>
+            <span class="text-[10px] text-slate-400 block">${formatThaiShortDate(item.date)}</span>
+          </div>
+        `;
+        mobileList.appendChild(card);
+
+        // Desktop Row
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/70';
+        tr.innerHTML = `
+          <td class="p-3 text-slate-500 whitespace-nowrap">${item.date || '-'}</td>
+          <td class="p-3"><span class="text-[10px] px-2 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'รายจ่าย' : 'รายรับ'}</span></td>
+          <td class="p-3 text-slate-700 whitespace-nowrap">${item.icon || ''} ${escapeHtml(item.category)}</td>
+          <td class="p-3 text-slate-400 max-w-[220px] truncate">${escapeHtml(item.note) || '-'}</td>
+          <td class="p-3 text-right whitespace-nowrap ${amtColor}">${amtStr}</td>
+        `;
+        desktopTbody.appendChild(tr);
+      });
+    }
+
+    function exportPaydayCycleCSV() {
+      if (paydayCycleTransactions.length === 0) {
+        showToast('ไม่มีรายการในช่วงงวดที่เลือก', 'warning');
+        return;
+      }
+      const startVal = document.getElementById('paydayStartInput').value || activeCycleStart;
+      const endVal = document.getElementById('paydayEndInput').value || activeCycleEnd;
+      const csv = buildTransactionsCSV(paydayCycleTransactions);
+      downloadCsv(csv, `money_diary_cycle_${startVal}_to_${endVal}.csv`);
+      showToast('ส่งออก Excel (CSV) เฉพาะงวดนี้สำเร็จ');
+    }
+
+    // =========================================================================
+    // 12. USER PIN SETTINGS
+    // =========================================================================
+    function updateCurrentPinDisplay() {
+      const pinDisp = document.getElementById('currentPinDisplay');
+      const pin = String((currentUserProfile && currentUserProfile.pin) ? currentUserProfile.pin : '1234');
+      pinDisp.innerText = isPinVisible ? pin : '•'.repeat(pin.length);
+    }
+
+    function togglePinVisibility() {
+      isPinVisible = !isPinVisible;
+      const eyeBtn = document.getElementById('btnTogglePinEye');
+      eyeBtn.innerHTML = isPinVisible ? '<i class="ph ph-eye-slash text-base"></i>' : '<i class="ph ph-eye text-base"></i>';
+      updateCurrentPinDisplay();
+    }
+
+    async function handleUpdateSelfPin() {
+      if (!currentUser) return;
+      const input = document.getElementById('inputNewPin');
+      const newPin = input.value.trim();
+
+      if (!/^\d{4,6}$/.test(newPin)) {
+        showToast('กรุณาระบุรหัส PIN เป็นตัวเลข 4 ถึง 6 หลัก', 'warning');
+        input.focus();
+        return;
+      }
+
+      try {
+        await db.collection('users').doc(currentUser.uid).update({ pin: newPin });
+        if (currentUserProfile) currentUserProfile.pin = newPin;
+        updateCurrentPinDisplay();
+        input.value = '';
+        showToast('อัปเดตรหัส PIN เรียบร้อยแล้ว');
+      } catch (err) {
+        showToast('อัปเดตไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    // =========================================================================
+    // 13. ADMIN PANEL: MEMBERS, PIN MANAGEMENT, INSPECTION & DELETE
+    // =========================================================================
     function listenToAdminUsers() {
       if (unsubscribeAdminUsers) unsubscribeAdminUsers();
       unsubscribeAdminUsers = db.collection('users').onSnapshot(snapshot => {
-        const container = document.getElementById('adminMembersContainer');
-        container.innerHTML = '';
+        const mobileContainer = document.getElementById('adminMembersCardsMobile');
+        const desktopTbody = document.getElementById('adminMembersTableDesktop');
+        mobileContainer.innerHTML = '';
+        desktopTbody.innerHTML = '';
 
         let total = 0;
         let active = 0;
@@ -1438,59 +2134,82 @@
             }
           }
 
+          const safeName = escapeHtml(u.displayName || u.email || '-');
+          const safeEmail = escapeHtml(u.email || '-');
+          const userPin = escapeHtml(u.pin || '1234');
+
+          // Mobile Card
           const card = document.createElement('div');
           card.className = 'p-3 bg-white border border-slate-200/80 rounded-2xl space-y-2.5';
           card.innerHTML = `
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="text-xs text-slate-800 flex items-center gap-1.5 flex-wrap">
-                  <span class="truncate">${escapeHtml(u.displayName || '-')}</span>
-                  ${isSelf ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200">คุณ</span>' : ''}
-                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isAdmin ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-100 text-slate-600'}">
-                    ${isAdmin ? 'Admin' : 'User'}
-                  </span>
-                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
-                    ${isSuspended ? 'ถูกระงับ' : 'ปกติ'}
-                  </span>
-                  <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 font-mono text-slate-600 border border-slate-200">
-                    PIN: ${u.pin || '1234'}
-                  </span>
+                  <span class="truncate">${safeName}</span>
+                  ${isSelf ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">คุณ</span>' : ''}
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-100 text-slate-600'}">${isAdmin ? 'Admin' : 'User'}</span>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isSuspended ? 'ถูกระงับ' : 'ปกติ'}</span>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600 border border-slate-200">PIN: ${userPin}</span>
                 </div>
-                <p class="text-[10px] text-slate-400 font-mono truncate mt-0.5">${escapeHtml(u.email || '-')}</p>
+                <p class="text-[10px] text-slate-400 font-mono truncate mt-0.5">${safeEmail}</p>
               </div>
               <div class="text-right text-[10px] text-slate-400 shrink-0">
-                <span>เข้าใช้ ${u.loginCount || 1} ครั้ง</span>
+                <span>${u.loginCount || 1} ครั้ง</span>
                 <span class="block">${lastLoginStr}</span>
               </div>
             </div>
 
-            <!-- Action Buttons Row -->
-            <div class="flex items-center gap-1.5 pt-1 border-t border-slate-100 overflow-x-auto text-xs">
-              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${escapeHtml(u.displayName || u.email)}', '${escapeHtml(u.email)}')" class="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 tap-action flex items-center justify-center gap-1 text-[11px] whitespace-nowrap">
-                <i class="ph ph-receipt"></i>
-                <span>ดูรายการ</span>
+            <div class="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 overflow-x-auto text-[11px]">
+              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${safeName}', '${safeEmail}')" class="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 tap-action flex items-center justify-center gap-1 whitespace-nowrap">
+                <i class="ph ph-receipt"></i><span>ดูรายการ</span>
               </button>
-
-              <button type="button" onclick="openAdminPinModal('${u.id}', '${escapeHtml(u.displayName || u.email)}', '${u.pin || '1234'}')" class="py-1.5 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 tap-action text-[11px] whitespace-nowrap flex items-center gap-1">
-                <i class="ph ph-key"></i>
-                <span>แก้ PIN</span>
+              <button type="button" onclick="openAdminPinModal('${u.id}', '${safeName}', '${userPin}')" class="py-1.5 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 tap-action whitespace-nowrap flex items-center gap-1">
+                <i class="ph ph-key"></i><span>แก้ PIN</span>
               </button>
-
-              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action text-[11px] whitespace-nowrap">
-                ${isAdmin ? 'ลดเป็น User' : 'ตั้ง Admin'}
+              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action whitespace-nowrap ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
+                ${isAdmin ? 'เป็น User' : 'เป็น Admin'}
               </button>
-
-              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="py-1.5 px-2.5 rounded-xl border tap-action text-[11px] whitespace-nowrap ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'}">
+              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="py-1.5 px-2 rounded-xl border tap-action whitespace-nowrap ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'} ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
                 ${isSuspended ? 'ปลดบล็อก' : 'ระงับ'}
               </button>
-
-              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${escapeHtml(u.displayName || u.email)}')" class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 tap-action text-[11px] whitespace-nowrap ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled title="ไม่สามารถลบบัญชีตัวเองได้"' : 'title="ลบสมาชิก"'}>
+              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${safeName}')" class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 tap-action whitespace-nowrap ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
                 <i class="ph ph-trash"></i>
-                <span>ลบ</span>
               </button>
             </div>
           `;
-          container.appendChild(card);
+          mobileContainer.appendChild(card);
+
+          // Desktop Table Row
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50/70 transition-colors';
+          tr.innerHTML = `
+            <td class="p-3">
+              <div class="text-slate-800 flex items-center gap-1.5">
+                <span>${safeName}</span>
+                ${isSelf ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">คุณ</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono">${safeEmail}</div>
+            </td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] ${isAdmin ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${isAdmin ? 'Admin' : 'User'}</span>
+            </td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isSuspended ? 'ถูกระงับ' : 'ปกติ'}</span>
+            </td>
+            <td class="p-3 font-mono text-slate-600">${userPin}</td>
+            <td class="p-3 text-slate-400 whitespace-nowrap">
+              <div>${lastLoginStr}</div>
+              <div class="text-[10px]">${u.loginCount || 1} ครั้ง</div>
+            </td>
+            <td class="p-3 text-right whitespace-nowrap space-x-1">
+              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${safeName}', '${safeEmail}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 text-[11px] tap-action">ดูรายการ</button>
+              <button type="button" onclick="openAdminPinModal('${u.id}', '${safeName}', '${userPin}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 text-[11px] tap-action">แก้ PIN</button>
+              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[11px] tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>เปลี่ยนสิทธิ์</button>
+              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="px-2 py-1 rounded-lg border text-[11px] tap-action ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'} ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>${isSuspended ? 'ปลดบล็อก' : 'ระงับ'}</button>
+              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${safeName}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 text-[11px] tap-action ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>ลบสมาชิก</button>
+            </td>
+          `;
+          desktopTbody.appendChild(tr);
         });
 
         document.getElementById('statTotalUsers').innerText = total;
@@ -1520,13 +2239,17 @@
       const newPin = input.value.trim();
 
       if (!/^\d{4,6}$/.test(newPin)) {
-        showToast('กรุณาระบุ PIN เป็นตัวเลข 4 หรือ 6 หลัก', 'warning');
+        showToast('กรุณาระบุ PIN เป็นตัวเลข 4 ถึง 6 หลัก', 'warning');
         input.focus();
         return;
       }
 
       try {
         await db.collection('users').doc(adminEditingUser.uid).update({ pin: newPin });
+        if (currentUser && adminEditingUser.uid === currentUser.uid && currentUserProfile) {
+          currentUserProfile.pin = newPin;
+          updateCurrentPinDisplay();
+        }
         showToast(`อัปเดต PIN ของ ${adminEditingUser.name} เรียบร้อยแล้ว`);
         closeAdminPinModal();
       } catch (err) {
@@ -1581,13 +2304,11 @@
               batch.delete(doc.ref);
             });
             await batch.commit();
-
             await db.collection('users').doc(uid).delete();
 
             if (currentInspectUid === uid) {
               closeAdminInspection();
             }
-
             showToast(`ลบสมาชิก "${name}" เรียบร้อยแล้ว`);
           } catch (err) {
             console.error("Delete user error:", err);
@@ -1600,18 +2321,15 @@
     async function inspectMemberTransactions(uid, name, email) {
       currentInspectUid = uid;
       const box = document.getElementById('adminInspectLedgerBox');
-      const targetNameEl = document.getElementById('inspectTargetName');
-      const targetEmailEl = document.getElementById('inspectTargetEmail');
       const container = document.getElementById('inspectTxListContainer');
       const emptyEl = document.getElementById('inspectTxEmpty');
 
-      targetNameEl.innerText = name;
-      targetEmailEl.innerText = email;
+      document.getElementById('inspectTargetName').innerText = name;
+      document.getElementById('inspectTargetEmail').innerText = email;
       box.classList.remove('hidden');
 
       container.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">กำลังดึงข้อมูลรายการ...</div>';
       emptyEl.classList.add('hidden');
-
       box.scrollIntoView({ behavior: 'smooth' });
 
       try {
@@ -1620,7 +2338,7 @@
         let income = 0;
         let expense = 0;
         let todayExpense = 0;
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getTodayStr();
 
         snap.forEach(doc => {
           const item = { id: doc.id, ...doc.data() };
@@ -1634,11 +2352,10 @@
           }
         });
 
-        const balance = income - expense;
-        document.getElementById('inspectBalance').innerText = '฿' + balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('inspectIncome').innerText = '฿' + income.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('inspectExpense').innerText = '฿' + expense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('inspectTodayExpense').innerText = '฿' + todayExpense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('inspectBalance').innerText = formatCurrency(income - expense);
+        document.getElementById('inspectIncome').innerText = formatCurrency(income);
+        document.getElementById('inspectExpense').innerText = formatCurrency(expense);
+        document.getElementById('inspectTodayExpense').innerText = formatCurrency(todayExpense);
 
         container.innerHTML = '';
         if (inspectTransactions.length === 0) {
@@ -1649,7 +2366,6 @@
         inspectTransactions.forEach(item => {
           const isExp = item.type === 'expense';
           const amt = parseFloat(item.amount) || 0;
-
           const card = document.createElement('div');
           card.className = 'p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
           card.innerHTML = `
@@ -1660,18 +2376,14 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5">
                   <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
-                  <span class="text-[9px] px-1.5 py-0.2 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
-                    ${isExp ? 'จ่าย' : 'รับ'}
-                  </span>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'จ่าย' : 'รับ'}</span>
                 </div>
                 <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
               </div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-xs whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">
-                ${isExp ? '-' : '+'}฿${amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <span class="text-[10px] text-slate-400 block">${item.date || '-'}</span>
+              <div class="text-xs whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">${isExp ? '-' : '+'}${formatCurrency(amt)}</div>
+              <span class="text-[10px] text-slate-400 block">${formatThaiShortDate(item.date)}</span>
             </div>
           `;
           container.appendChild(card);
@@ -1692,21 +2404,25 @@
         showToast('ไม่มีรายการให้ส่งออก', 'warning');
         return;
       }
+      const csv = buildTransactionsCSV(inspectTransactions);
+      const name = (document.getElementById('inspectTargetName').innerText || 'member').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+      downloadCsv(csv, `ledger_${name}_${getTodayStr()}.csv`);
+      showToast('ส่งออก CSV ของสมาชิกเรียบร้อย');
+    }
+
+    // =========================================================================
+    // 14. UTILITIES: CSV BUILDER, DIALOG MODAL, TOAST, ESCAPE HTML
+    // =========================================================================
+    function buildTransactionsCSV(list) {
       let csv = '\uFEFFวันที่,ประเภท,หมวดหมู่,โน้ต,จำนวนเงิน(บาท)\n';
-      inspectTransactions.forEach(t => {
+      list.forEach(t => {
         const typeText = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
         const safeNote = (t.note || '').replace(/"/g, '""');
         csv += `"${t.date || ''}","${typeText}","${t.category || ''}","${safeNote}","${t.amount || 0}"\n`;
       });
-      const name = (document.getElementById('inspectTargetName').innerText || 'member').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
-      const today = new Date().toISOString().split('T')[0];
-      downloadCsv(csv, `ledger_${name}_${today}.csv`);
-      showToast('ส่งออก CSV ของสมาชิกเรียบร้อย');
+      return csv;
     }
 
-    // -----------------------------------------------------------------
-    // 11. UTILITIES: CSV, DIALOG, TOAST, ESCAPE
-    // -----------------------------------------------------------------
     function downloadCsv(content, filename) {
       const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1719,22 +2435,22 @@
       URL.revokeObjectURL(url);
     }
 
+    let toastTimer = null;
     function showToast(msg, type = 'success') {
       const bar = document.getElementById('toastNotification');
       const text = document.getElementById('toastMessage');
       const icon = document.getElementById('toastIcon');
 
       text.innerText = msg;
-      if (type === 'warning') {
-        icon.className = 'ph ph-warning-circle text-amber-400 text-base';
-      } else {
-        icon.className = 'ph ph-check-circle text-emerald-400 text-base';
-      }
+      icon.className = type === 'warning'
+        ? 'ph ph-warning-circle text-amber-400 text-base'
+        : 'ph ph-check-circle text-emerald-400 text-base';
 
       bar.classList.remove('opacity-0', 'pointer-events-none');
-      setTimeout(() => {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
         bar.classList.add('opacity-0', 'pointer-events-none');
-      }, 2400);
+      }, 2600);
     }
 
     function showAppDialog(title, message, onConfirm) {
