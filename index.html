@@ -3,9 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Money Diary - ระบบบันทึกรายรับรายจ่าย</title>
+  <title>Money Diary - ระบบบันทึกรายรับ-รายจ่าย</title>
 
-  <!-- Typography: Prompt & Sarabun (weights 300, 400 only) -->
+  <!-- PWA & Mobile Home Screen App Icon Meta Tags -->
+  <meta name="theme-color" content="#047857">
+  <meta name="application-name" content="Money Diary">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Money Diary">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link id="faviconLink" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2310b981'/%3E%3Cstop offset='100%25' stop-color='%23047857'/%3E%3C/linearGradient%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fde047'/%3E%3Cstop offset='100%25' stop-color='%23f59e0b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='128' height='128' rx='28' fill='url(%23g)'/%3E%3Crect x='24' y='44' width='76' height='54' rx='14' fill='%23ffffff'/%3E%3Crect x='68' y='60' width='36' height='22' rx='11' fill='%23d1fae5'/%3E%3Ccircle cx='80' cy='71' r='5' fill='%23047857'/%3E%3Ccircle cx='90' cy='38' r='18' fill='url(%23c)' stroke='%23ffffff' stroke-width='4'/%3E%3Ctext x='90' y='45' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%2378350f'%3E%E0%B8%BF%3C/text%3E%3C/svg%3E">
+  <link id="appleTouchIconLink" rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link id="pwaManifestLink" rel="manifest" href="">
+
+  <!-- Fonts: Prompt & Sarabun (Light & Regular only) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400&family=Sarabun:wght@300;400&display=swap" rel="stylesheet">
@@ -16,17 +27,18 @@
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- Firebase SDKs (v10.14.1 Compat) -->
+  <!-- Firebase JS SDK v10.14.1 Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
   <style>
-    /* STRICT DESIGN REQUIREMENT: No bold text anywhere in the application */
+    /* CRITICAL DESIGN RULE: Strictly NO bold text anywhere across the entire app */
     *, *::before, *::after,
     h1, h2, h3, h4, h5, h6,
-    b, strong, th, td, input, button, select, textarea, span, p, label, div,
+    b, strong, th, td, input, button, select, textarea, span, p, label, div, option,
     .font-bold, .font-semibold, .font-medium {
+      font-family: 'Prompt', 'Sarabun', sans-serif;
       font-weight: 400 !important;
       -webkit-tap-highlight-color: transparent;
       box-sizing: border-box;
@@ -35,7 +47,6 @@
     body {
       background-color: #f8fafc;
       color: #334155;
-      font-family: 'Prompt', 'Sarabun', -apple-system, sans-serif;
       padding-bottom: env(safe-area-inset-bottom);
       overflow-x: hidden;
     }
@@ -53,14 +64,14 @@
       transform: scale(0.97);
     }
 
-    /* Hide number input spinners */
+    /* Remove numeric input spinners */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button {
       -webkit-appearance: none;
       margin: 0;
     }
 
-    /* PIN Dots Animation */
+    /* PIN indicator dots */
     .pin-dot {
       width: 14px;
       height: 14px;
@@ -72,6 +83,61 @@
       background-color: #059669;
       border-color: #059669;
       transform: scale(1.15);
+    }
+
+    /* Concept 1: Hero Wallet Card Gradient & Glassmorphism */
+    .hero-wallet-card {
+      background: linear-gradient(135deg, #10b981 0%, #059669 48%, #065f46 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-wallet-card.low-budget {
+      background: linear-gradient(135deg, #f59e0b 0%, #ea580c 52%, #be123c 100%);
+    }
+    .hero-orb-1 {
+      position: absolute;
+      top: -36px;
+      right: -28px;
+      width: 150px;
+      height: 150px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0) 70%);
+      pointer-events: none;
+    }
+    .hero-orb-2 {
+      position: absolute;
+      bottom: -48px;
+      left: -24px;
+      width: 170px;
+      height: 170px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, rgba(167,243,208,0.22) 0%, rgba(167,243,208,0) 72%);
+      pointer-events: none;
+    }
+    .glass-tile {
+      background: rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    /* Concept 2: Floating Glass Dock */
+    .floating-dock {
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+    }
+
+    /* Concept 2: Color-Tinted Entry Box */
+    .entry-tint-expense {
+      background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
+      border-color: #fecdd3;
+    }
+    .entry-tint-income {
+      background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+      border-color: #a7f3d0;
     }
 
     /* Subtle scrollbar */
@@ -92,19 +158,58 @@
 
   <!-- ==================== INITIAL LOADING SCREEN ==================== -->
   <div id="appLoadingScreen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
-    <div class="w-10 h-10 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div>
-    <p class="mt-4 text-xs text-slate-500">กำลังเชื่อมต่อระบบฐานข้อมูล...</p>
+    <div class="w-16 h-16 rounded-2xl shadow-md shadow-emerald-600/20 overflow-hidden mb-4">
+      <svg viewBox="0 0 128 128" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Money Diary Icon">
+        <defs>
+          <linearGradient id="mdSplashBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#047857"/>
+          </linearGradient>
+          <linearGradient id="mdSplashCoin" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fde047"/>
+            <stop offset="100%" stop-color="#f59e0b"/>
+          </linearGradient>
+        </defs>
+        <rect width="128" height="128" rx="28" fill="url(#mdSplashBg)"/>
+        <path d="M0 28 C0 12 12 0 28 0 L100 0 C116 0 128 12 128 28 L128 52 C92 34 36 34 0 52 Z" fill="#ffffff" fill-opacity="0.12"/>
+        <rect x="24" y="44" width="76" height="54" rx="14" fill="#ffffff"/>
+        <rect x="68" y="60" width="36" height="22" rx="11" fill="#d1fae5"/>
+        <circle cx="80" cy="71" r="5" fill="#047857"/>
+        <circle cx="90" cy="38" r="18" fill="url(#mdSplashCoin)" stroke="#ffffff" stroke-width="4"/>
+        <text x="90" y="45" text-anchor="middle" font-size="20" fill="#78350f">฿</text>
+      </svg>
+    </div>
+    <div class="w-8 h-8 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin"></div>
+    <p class="mt-3 text-xs text-slate-500">กำลังเชื่อมต่อระบบฐานข้อมูล...</p>
   </div>
 
   <!-- ==================== AUTHENTICATION SCREEN ==================== -->
   <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 bg-slate-50 hidden">
     <div class="card p-6 sm:p-8 w-full max-w-sm shadow-sm space-y-5">
       <div class="text-center space-y-1">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-2xl mx-auto mb-2">
-          <i class="ph ph-wallet"></i>
+        <div class="w-16 h-16 rounded-2xl shadow-md shadow-emerald-600/20 overflow-hidden mx-auto mb-2.5">
+          <svg viewBox="0 0 128 128" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Money Diary Icon">
+            <defs>
+              <linearGradient id="mdAuthBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#10b981"/>
+                <stop offset="100%" stop-color="#047857"/>
+              </linearGradient>
+              <linearGradient id="mdAuthCoin" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fde047"/>
+                <stop offset="100%" stop-color="#f59e0b"/>
+              </linearGradient>
+            </defs>
+            <rect width="128" height="128" rx="28" fill="url(#mdAuthBg)"/>
+            <path d="M0 28 C0 12 12 0 28 0 L100 0 C116 0 128 12 128 28 L128 52 C92 34 36 34 0 52 Z" fill="#ffffff" fill-opacity="0.12"/>
+            <rect x="24" y="44" width="76" height="54" rx="14" fill="#ffffff"/>
+            <rect x="68" y="60" width="36" height="22" rx="11" fill="#d1fae5"/>
+            <circle cx="80" cy="71" r="5" fill="#047857"/>
+            <circle cx="90" cy="38" r="18" fill="url(#mdAuthCoin)" stroke="#ffffff" stroke-width="4"/>
+            <text x="90" y="45" text-anchor="middle" font-size="20" fill="#78350f">฿</text>
+          </svg>
         </div>
         <h1 class="text-xl text-slate-800">Money Diary</h1>
-        <p class="text-xs text-slate-400">บันทึกรายรับรายจ่ายแยกบัญชีรายคน</p>
+        <p class="text-xs text-slate-400">ระบบบันทึกรายรับ-รายจ่ายแยกบัญชีรายคน</p>
       </div>
 
       <!-- Auth Mode Switcher -->
@@ -114,12 +219,13 @@
         <button type="button" id="tabBtnRegister" onclick="switchAuthView('register')" class="py-2 rounded-lg text-slate-500 hover:text-slate-800 tap-action text-center">สมัครสมาชิก</button>
       </div>
 
-      <!-- VIEW 1: QUICK PIN LOGIN -->
+      <!-- TAB 1: QUICK PIN LOGIN -->
       <div id="authViewPin" class="space-y-4">
         <div>
-          <label class="block text-xs text-slate-500 mb-1">เลือกบัญชีผู้ใช้</label>
+          <label class="block text-xs text-slate-500 mb-1.5">เลือกบัญชีผู้ใช้</label>
+          <div id="pinMemberAvatars" class="flex items-center gap-2 overflow-x-auto pb-1 mb-2"></div>
           <select id="pinUserSelect" onchange="onPinUserChanged()" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-700">
-            <option value="">กำลังโหลดรายชื่อผู้ใช้...</option>
+            <option value="">กำลังโหลดรายชื่อสมาชิก...</option>
           </select>
         </div>
 
@@ -133,7 +239,7 @@
           </div>
         </div>
 
-        <!-- Touch-Friendly Numeric Keypad -->
+        <!-- Mobile-Friendly Numeric Keypad -->
         <div class="grid grid-cols-3 gap-2 pt-1">
           <button type="button" onclick="pressPinDigit('1')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">1</button>
           <button type="button" onclick="pressPinDigit('2')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">2</button>
@@ -146,7 +252,7 @@
           <button type="button" onclick="pressPinDigit('9')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">9</button>
           <button type="button" onclick="clearPin()" class="py-3.5 text-slate-400 hover:text-slate-600 text-xs rounded-2xl tap-action">ล้าง</button>
           <button type="button" onclick="pressPinDigit('0')" class="py-3.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-lg rounded-2xl border border-slate-200/70 tap-action">0</button>
-          <button type="button" onclick="deletePinDigit()" class="py-3.5 text-slate-400 hover:text-rose-600 text-lg rounded-2xl tap-action flex items-center justify-center">
+          <button type="button" onclick="deletePinDigit()" class="py-3.5 text-slate-400 hover:text-rose-600 text-lg rounded-2xl tap-action flex items-center justify-center" title="ลบตัวเลข">
             <i class="ph ph-backspace"></i>
           </button>
         </div>
@@ -154,7 +260,7 @@
         <div id="pinErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed text-center"></div>
       </div>
 
-      <!-- VIEW 2 & 3: EMAIL / PASSWORD LOGIN & REGISTER -->
+      <!-- TAB 2 & 3: EMAIL / PASSWORD LOGIN & REGISTRATION -->
       <form id="authPassForm" onsubmit="handleAuthSubmit(event)" class="space-y-3.5 text-xs hidden">
         <div id="authNameGroup" class="hidden">
           <label class="block text-slate-500 mb-1">ชื่อเล่น / ชื่อเรียก</label>
@@ -174,7 +280,7 @@
         <div id="authPinSetupGroup" class="hidden">
           <label class="block text-slate-500 mb-1">กำหนดรหัส PIN ด่วน (ตัวเลข 4-6 หลัก)</label>
           <input type="password" id="authInitialPin" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="เช่น 1234 หรือ 123456" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-800">
-          <p class="text-[10px] text-slate-400 mt-1">ใช้สำหรับกดเข้าใช้งานรวดเร็วในครั้งต่อไป (ค่าเริ่มต้น 1234)</p>
+          <p class="text-[10px] text-slate-400 mt-1">ใช้สำหรับกดเข้าใช้งานรวดเร็วในครั้งต่อไป (หากเว้นว่างจะตั้งเป็น 1234)</p>
         </div>
 
         <div id="authErrorMsg" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl hidden text-[11px] leading-relaxed"></div>
@@ -206,24 +312,42 @@
   <!-- ==================== MAIN APPLICATION ==================== -->
   <div id="mainApp" class="flex-1 flex flex-col hidden pb-24 md:pb-10">
 
-    <!-- TOP NAVIGATION BAR -->
+    <!-- TOP NAVIGATION BAR (Desktop / iPad) -->
     <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
       <div class="max-w-5xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <div class="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center text-base shrink-0">
-            <i class="ph ph-wallet"></i>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-xl shadow-xs shadow-emerald-600/20 overflow-hidden shrink-0">
+            <svg viewBox="0 0 128 128" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Money Diary Icon">
+              <defs>
+                <linearGradient id="mdNavBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#10b981"/>
+                  <stop offset="100%" stop-color="#047857"/>
+                </linearGradient>
+                <linearGradient id="mdNavCoin" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fde047"/>
+                  <stop offset="100%" stop-color="#f59e0b"/>
+                </linearGradient>
+              </defs>
+              <rect width="128" height="128" rx="28" fill="url(#mdNavBg)"/>
+              <path d="M0 28 C0 12 12 0 28 0 L100 0 C116 0 128 12 128 28 L128 52 C92 34 36 34 0 52 Z" fill="#ffffff" fill-opacity="0.12"/>
+              <rect x="24" y="44" width="76" height="54" rx="14" fill="#ffffff"/>
+              <rect x="68" y="60" width="36" height="22" rx="11" fill="#d1fae5"/>
+              <circle cx="80" cy="71" r="5" fill="#047857"/>
+              <circle cx="90" cy="38" r="18" fill="url(#mdNavCoin)" stroke="#ffffff" stroke-width="4"/>
+              <text x="90" y="45" text-anchor="middle" font-size="20" fill="#78350f">฿</text>
+            </svg>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span class="text-slate-800 text-xs sm:text-sm truncate">Money Diary</span>
               <span id="navRoleBadge" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">User</span>
             </div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[140px] sm:max-w-[220px]" id="navUserEmail">-</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 truncate max-w-[150px] sm:max-w-[240px]" id="navUserEmail">-</p>
           </div>
         </div>
 
-        <!-- Desktop / Tablet Navigation Tabs -->
         <div class="flex items-center gap-2">
+          <!-- Top Tabs on iPad/Desktop -->
           <div class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl text-xs gap-0.5">
             <button type="button" onclick="switchTab('record')" id="deskTabRecord" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action">บันทึก</button>
             <button type="button" onclick="switchTab('history')" id="deskTabHistory" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ประวัติ</button>
@@ -231,7 +355,7 @@
               <i class="ph ph-calendar-check text-emerald-600"></i>
               <span>สรุปงวด</span>
             </button>
-            <button type="button" onclick="switchTab('settings')" id="deskTabSettings" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">ตั้งค่า PIN</button>
+            <button type="button" onclick="switchTab('settings')" id="deskTabSettings" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">PIN</button>
             <button type="button" onclick="switchTab('admin')" id="deskTabAdmin" class="hidden px-3 py-1.5 rounded-lg text-indigo-700 hover:text-indigo-900 tap-action">แอดมิน</button>
           </div>
 
@@ -246,135 +370,153 @@
     <!-- MAIN CONTENT CONTAINER -->
     <main class="max-w-5xl mx-auto px-3 sm:px-4 w-full mt-4 space-y-4 flex-1">
 
-      <!-- DASHBOARD OVERVIEW SECTION (Summary Toggle + Active Cycle + 4 Cards) -->
-      <section class="space-y-2.5">
-        <!-- Scope Toggle Pill + Prominent Payday Summary Button -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div class="flex items-center flex-wrap gap-2">
-            <div class="inline-flex items-center bg-slate-200/70 p-0.5 rounded-xl text-[11px]">
-              <button type="button" id="btnScopeCycle" onclick="setDashboardScope('cycle')" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action">
+      <!-- ==================== TAB 1: HOME / RECORD ==================== -->
+      <section id="tabContentRecord" class="space-y-4">
+
+        <!-- CONCEPT 1: HERO WALLET CARD (การ์ดกระเป๋าเงินใบใหญ่ + แถบพลังเงินเดือน) -->
+        <div class="space-y-2.5">
+          <!-- Compact Scope Switcher + Quick Summary Link -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="inline-flex items-center bg-slate-200/70 p-0.5 rounded-full text-[11px]">
+              <button type="button" id="btnScopeCycle" onclick="setDashboardScope('cycle')" class="px-3 py-1 rounded-full bg-white text-slate-800 shadow-xs tap-action">
                 ยอดตามรอบเงินเดือน
               </button>
-              <button type="button" id="btnScopeAll" onclick="setDashboardScope('all')" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action">
+              <button type="button" id="btnScopeAll" onclick="setDashboardScope('all')" class="px-3 py-1 rounded-full text-slate-500 hover:text-slate-800 tap-action">
                 ยอดรวมทั้งหมด
               </button>
             </div>
-            <span id="dashActiveCycleBadge" class="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-              <i class="ph ph-calendar-blank text-xs"></i>
-              <span id="dashCycleRangeLabel">-</span>
-            </span>
+            <button type="button" onclick="switchTab('payday')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[11px] rounded-full shadow-xs tap-action">
+              <i class="ph ph-chart-pie-slice text-xs"></i>
+              <span>สรุปงวด</span>
+            </button>
           </div>
 
-          <button type="button" onclick="switchTab('payday')" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs rounded-xl shadow-sm tap-action">
-            <i class="ph ph-chart-pie-slice text-sm"></i>
-            <span>สรุปยอดตามงวดเงินเดือน</span>
-          </button>
+          <div id="heroWalletCard" class="hero-wallet-card rounded-[1.75rem] p-5 text-white shadow-lg shadow-emerald-700/20 space-y-4 transition-all duration-500">
+            <div class="hero-orb-1"></div>
+            <div class="hero-orb-2"></div>
+
+            <!-- Top Row: Active Payday Cycle Pill & Start New Cycle Button -->
+            <div class="relative z-10 flex items-center justify-between gap-2">
+              <button type="button" id="dashActiveCycleBadge" onclick="switchTab('payday')" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full glass-tile text-[11px] text-white/95 hover:bg-white/25 tap-action">
+                <i class="ph ph-calendar-blank text-xs"></i>
+                <span id="dashCycleRangeLabel">รอบงวด: -</span>
+              </button>
+              <button type="button" onclick="openNewCycleModal()" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-[11px] text-white tap-action shrink-0">
+                <i class="ph ph-arrows-clockwise text-xs"></i>
+                <span>เริ่มงวดใหม่</span>
+              </button>
+            </div>
+
+            <!-- Center: Main Balance -->
+            <div class="relative z-10 space-y-0.5">
+              <span class="text-[11px] text-white/80 block" id="dashBalanceLabel">ยอดคงเหลือสุทธิในงวดนี้</span>
+              <div class="text-3xl sm:text-4xl tracking-tight text-white truncate" id="dashBalance">฿0.00</div>
+            </div>
+
+            <!-- Budget Progress Bar (แถบพลังเงินเดือน) -->
+            <div id="heroProgressWrap" class="relative z-10 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-white/85">
+                <span id="heroProgressLabel">ยังไม่มีรายรับในงวดนี้</span>
+                <span id="heroRemainLabel">คงเหลือ 0%</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-black/20 overflow-hidden">
+                <div id="heroProgressBar" class="h-full rounded-full bg-gradient-to-r from-emerald-200 to-white transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Bottom 3 Frosted Glass Sub-Tiles -->
+            <div class="relative z-10 grid grid-cols-3 gap-2 pt-1">
+              <div class="glass-tile rounded-2xl p-2.5 sm:p-3">
+                <div class="flex items-center gap-1 text-[10px] sm:text-[11px] text-white/80 mb-0.5">
+                  <i class="ph ph-arrow-down-left text-emerald-200"></i>
+                  <span id="dashIncomeLabel" class="truncate">รายรับ</span>
+                </div>
+                <div class="text-xs sm:text-sm text-white truncate" id="dashIncome">฿0.00</div>
+              </div>
+
+              <div class="glass-tile rounded-2xl p-2.5 sm:p-3">
+                <div class="flex items-center gap-1 text-[10px] sm:text-[11px] text-white/80 mb-0.5">
+                  <i class="ph ph-arrow-up-right text-rose-200"></i>
+                  <span id="dashExpenseLabel" class="truncate">รายจ่าย</span>
+                </div>
+                <div class="text-xs sm:text-sm text-white truncate" id="dashExpense">฿0.00</div>
+              </div>
+
+              <div class="glass-tile rounded-2xl p-2.5 sm:p-3">
+                <div class="flex items-center gap-1 text-[10px] sm:text-[11px] text-white/80 mb-0.5">
+                  <i class="ph ph-sun text-amber-200"></i>
+                  <span class="truncate">จ่ายวันนี้</span>
+                </div>
+                <div class="text-xs sm:text-sm text-white truncate" id="dashTodayExpense">฿0.00</div>
+                <span class="hidden" id="dashTodayDateLabel">วันนี้</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- 4 Summary Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-          <div class="card p-3 sm:p-4 shadow-xs">
-            <div class="flex items-center justify-between text-slate-400 mb-1">
-              <span class="text-[11px]" id="dashBalanceLabel">คงเหลืองวดนี้</span>
-              <i class="ph ph-wallet text-xs text-emerald-600"></i>
-            </div>
-            <div class="text-lg sm:text-xl text-slate-800 truncate" id="dashBalance">฿0.00</div>
-            <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashBalanceSub">รายรับหักลบรายจ่าย</div>
-          </div>
-
-          <div class="card p-3 sm:p-4 shadow-xs">
-            <div class="flex items-center justify-between text-slate-400 mb-1">
-              <span class="text-[11px]" id="dashIncomeLabel">รายรับงวดนี้</span>
-              <i class="ph ph-arrow-down-left text-xs text-emerald-500"></i>
-            </div>
-            <div class="text-lg sm:text-xl text-emerald-600 truncate" id="dashIncome">฿0.00</div>
-            <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินเข้า</div>
-          </div>
-
-          <div class="card p-3 sm:p-4 shadow-xs">
-            <div class="flex items-center justify-between text-slate-400 mb-1">
-              <span class="text-[11px]" id="dashExpenseLabel">รายจ่ายงวดนี้</span>
-              <i class="ph ph-arrow-up-right text-xs text-rose-500"></i>
-            </div>
-            <div class="text-lg sm:text-xl text-rose-600 truncate" id="dashExpense">฿0.00</div>
-            <div class="text-[10px] text-slate-400 truncate mt-0.5">เงินออก</div>
-          </div>
-
-          <div class="card p-3 sm:p-4 shadow-xs">
-            <div class="flex items-center justify-between text-slate-400 mb-1">
-              <span class="text-[11px]">รายจ่ายวันนี้</span>
-              <i class="ph ph-calendar text-xs text-amber-500"></i>
-            </div>
-            <div class="text-lg sm:text-xl text-amber-600 truncate" id="dashTodayExpense">฿0.00</div>
-            <div class="text-[10px] text-slate-400 truncate mt-0.5" id="dashTodayDateLabel">วันนี้</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB 1: RECORD ENTRY ==================== -->
-      <section id="tabContentRecord" class="space-y-4">
-        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <!-- CONCEPT 2: COLOR-TINTED RECORD ENTRY FORM CARD -->
+        <div class="bg-white rounded-[1.75rem] p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div class="flex items-center justify-between pb-1">
             <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
               <i class="ph ph-plus-circle text-emerald-600 text-base"></i> บันทึกรายการใหม่
             </h2>
             <span class="text-[11px] text-slate-400">บันทึกลงคลาวด์ทันที</span>
           </div>
 
-          <!-- Expense / Income Toggle -->
-          <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl gap-1">
-            <button type="button" id="btnTypeExpense" onclick="setEntryType('expense')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-sm tap-action">
+          <!-- Expense / Income Segmented Pill Toggle -->
+          <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl gap-1">
+            <button type="button" id="btnTypeExpense" onclick="setEntryType('expense')" class="py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action">
               <i class="ph ph-minus-circle text-sm"></i> รายจ่าย
             </button>
-            <button type="button" id="btnTypeIncome" onclick="setEntryType('income')" class="py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action">
+            <button type="button" id="btnTypeIncome" onclick="setEntryType('income')" class="py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action">
               <i class="ph ph-plus-circle text-sm"></i> รายรับ
             </button>
           </div>
 
-          <!-- Amount Input + Quick Add Chips -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-xs text-slate-500">จำนวนเงิน (บาท)</label>
-              <span class="text-[11px] text-slate-400">พิมพ์หรือแตะบวกด่วน</span>
+          <!-- Tinted Amount Box + Quick Add Chips -->
+          <div id="amountBoxWrapper" class="entry-tint-expense rounded-2xl p-3.5 sm:p-4 border transition-all duration-300 space-y-2.5">
+            <div class="flex items-center justify-between text-[11px]">
+              <label id="amountTintLabel" class="text-rose-500">จำนวนเงินรายจ่าย (บาท)</label>
+              <span class="text-slate-400">พิมพ์หรือแตะบวกด่วน</span>
             </div>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-xl">฿</span>
-              <input type="number" id="txAmount" inputmode="decimal" step="any" min="0" placeholder="0.00" class="w-full pl-9 pr-12 py-3 bg-slate-50 focus:bg-white border border-slate-200 rounded-2xl text-2xl text-slate-800 outline-none focus:border-emerald-500 transition-all">
-              <button type="button" onclick="clearAmount()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-300 hover:text-slate-500" title="ล้างจำนวนเงิน">
+            <div class="relative flex items-center">
+              <span id="currencyPrefix" class="text-2xl text-rose-400 mr-2 transition-colors">฿</span>
+              <input type="number" id="txAmount" inputmode="decimal" step="any" min="0" placeholder="0.00" class="w-full bg-transparent text-3xl text-slate-800 outline-none pr-9">
+              <button type="button" onclick="clearAmount()" class="absolute right-0 text-slate-300 hover:text-slate-500 p-1" title="ล้างจำนวนเงิน">
                 <i class="ph ph-x-circle text-2xl"></i>
               </button>
             </div>
 
-            <div class="grid grid-cols-4 gap-2 mt-2">
-              <button type="button" onclick="quickAddAmount(20)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+20</button>
-              <button type="button" onclick="quickAddAmount(50)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+50</button>
-              <button type="button" onclick="quickAddAmount(100)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+100</button>
-              <button type="button" onclick="quickAddAmount(500)" class="py-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 text-xs rounded-xl border border-slate-200/60 tap-action">+500</button>
+            <div class="grid grid-cols-4 gap-2 pt-0.5">
+              <button type="button" onclick="quickAddAmount(20)" class="py-2 bg-white/85 hover:bg-white text-slate-600 text-xs rounded-xl border border-slate-200/70 tap-action">+20</button>
+              <button type="button" onclick="quickAddAmount(50)" class="py-2 bg-white/85 hover:bg-white text-slate-600 text-xs rounded-xl border border-slate-200/70 tap-action">+50</button>
+              <button type="button" onclick="quickAddAmount(100)" class="py-2 bg-white/85 hover:bg-white text-slate-600 text-xs rounded-xl border border-slate-200/70 tap-action">+100</button>
+              <button type="button" onclick="quickAddAmount(500)" class="py-2 bg-white/85 hover:bg-white text-slate-600 text-xs rounded-xl border border-slate-200/70 tap-action">+500</button>
             </div>
           </div>
 
-          <!-- Category Selector Grid -->
+          <!-- Category Grid -->
           <div>
             <label class="block text-xs text-slate-500 mb-1.5">หมวดหมู่</label>
             <div id="categoryContainer" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
           </div>
 
-          <!-- Note & Date Inputs -->
+          <!-- Note & Date -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label class="block text-xs text-slate-500 mb-1">โน้ต / รายละเอียด</label>
-              <input type="text" id="txNote" placeholder="เช่น กาแฟเช้า ข้าวเที่ยง งวด พ.ย." class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+              <input type="text" id="txNote" placeholder="เช่น กาแฟเช้า ข้าวเที่ยง งวด พ.ย." class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200/80 rounded-2xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
             </div>
             <div>
               <label class="block text-xs text-slate-500 mb-1">วันที่</label>
-              <input type="date" id="txDate" class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+              <input type="date" id="txDate" class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200/80 rounded-2xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
             </div>
           </div>
 
-          <!-- Save Button -->
-          <button type="button" id="saveTxBtn" onclick="handleSaveTransaction()" class="w-full py-3.5 bg-slate-900 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-2xl shadow-sm transition-colors flex items-center justify-center gap-2 tap-action">
+          <!-- Tinted Save Button -->
+          <button type="button" id="saveTxBtn" onclick="handleSaveTransaction()" class="w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm rounded-2xl shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-2 tap-action">
             <i class="ph ph-check text-base"></i>
-            <span>บันทึกรายการ</span>
+            <span>บันทึกรายจ่าย</span>
           </button>
         </div>
       </section>
@@ -396,18 +538,19 @@
             </div>
           </div>
 
-          <!-- Search & Period Filters -->
+          <!-- Filters -->
           <div class="space-y-2.5">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                   <i class="ph ph-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="filterSearch" oninput="renderUserHistory()" placeholder="ค้นหาหมวดหมู่หรือโน้ต..." class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
+                <input type="text" id="filterSearch" oninput="renderTransactions()" placeholder="ค้นหาหมวดหมู่หรือโน้ต..." class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-700">
               </div>
 
               <select id="filterPeriod" onchange="onHistoryPeriodChange()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-500">
-                <option value="payday" selected>รอบเงินเดือนปัจจุบัน</option>
+                <option id="optFilterPayday" value="payday" selected>รอบเงินเดือนปัจจุบัน</option>
+                <option id="optFilterPrevPayday" value="prev_payday">งวดที่แล้ว</option>
                 <option value="custom">กำหนดช่วงวันที่เอง</option>
                 <option value="today">เฉพาะวันนี้</option>
                 <option value="week">สัปดาห์นี้</option>
@@ -415,40 +558,40 @@
                 <option value="all">ทุกช่วงเวลา</option>
               </select>
 
-              <select id="filterType" onchange="renderUserHistory()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-500">
+              <select id="filterType" onchange="renderTransactions()" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-500">
                 <option value="all">ทั้งหมด (รับ/จ่าย)</option>
                 <option value="expense">เฉพาะรายจ่าย</option>
                 <option value="income">เฉพาะรายรับ</option>
               </select>
             </div>
 
-            <!-- Inline Custom Date Range Picker (Visible when period === 'custom') -->
+            <!-- Inline Custom Date Range Picker -->
             <div id="historyCustomDateRow" class="hidden grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">ตั้งแต่วันที่</label>
-                <input type="date" id="historyStartDate" onchange="renderUserHistory()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
+                <input type="date" id="historyStartDate" onchange="renderTransactions()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
               </div>
               <div>
                 <label class="block text-[11px] text-slate-500 mb-1">ถึงวันที่</label>
-                <input type="date" id="historyEndDate" onchange="renderUserHistory()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
+                <input type="date" id="historyEndDate" onchange="renderTransactions()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-slate-700">
               </div>
             </div>
 
-            <!-- Active Payday Cycle Notice in History -->
+            <!-- Active Saved Cycle Banner -->
             <div id="historyPaydayHint" class="flex items-center justify-between px-3 py-2 bg-emerald-50/60 border border-emerald-100 rounded-xl text-[11px] text-emerald-700">
               <span class="flex items-center gap-1.5">
                 <i class="ph ph-calendar-check text-sm"></i>
-                <span>กำลังแสดงรอบเงินเดือน: <span id="historyPaydayRangeText">-</span></span>
+                <span><span id="historyPaydayHintPrefix">งวดปัจจุบัน:</span> <span id="historyPaydayRangeText">-</span></span>
               </span>
-              <button type="button" onclick="switchTab('payday')" class="underline hover:text-emerald-900">เปลี่ยนงวด</button>
+              <button type="button" onclick="switchTab('payday')" class="underline hover:text-emerald-900">ตั้งค่างวด</button>
             </div>
           </div>
 
-          <!-- Mobile Cards View -->
+          <!-- Mobile Cards -->
           <div id="userTxCardsMobile" class="md:hidden space-y-2"></div>
 
-          <!-- Desktop Table View -->
-          <div id="userTxTableWrapDesktop" class="hidden md:block overflow-x-auto">
+          <!-- Desktop / iPad Table -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
@@ -478,21 +621,27 @@
         </div>
       </section>
 
-      <!-- ==================== TAB 3: PAYDAY CYCLE SUMMARY (รอบเงินเดือน) ==================== -->
+      <!-- ==================== TAB 3: PAYDAY CYCLE SUMMARY (สรุปงวด) ==================== -->
       <section id="tabContentPayday" class="space-y-4 hidden">
-        <!-- Date Range Selector & Presets Card -->
+        <!-- Date Range Selector & Dynamic Saved Cycle Pill -->
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div>
               <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-                <i class="ph ph-calendar-check text-emerald-600 text-base"></i> สรุปยอดตามงวดเงินเดือน (Payday Cycle)
+                <i class="ph ph-calendar-check text-emerald-600 text-base"></i> สรุปยอดตามงวดเงินเดือน
               </h2>
-              <p class="text-[11px] text-slate-400 mt-0.5">เลือกวันเงินเดือนออกและวันสิ้นสุดงวดได้อิสระตามรอบจริงของคุณ</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">เลือกวันเริ่มงวดและวันสิ้นสุดงวดได้อิสระ หรือสลับดูงวดที่แล้วได้ทันที</p>
             </div>
-            <button type="button" onclick="exportPaydayCycleCSV()" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
-              <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
-              <span>ส่งออก Excel (CSV) เฉพาะงวดนี้</span>
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="openNewCycleModal()" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs tap-action">
+                <i class="ph ph-arrows-clockwise text-sm"></i>
+                <span>เริ่มงวดใหม่</span>
+              </button>
+              <button type="button" onclick="exportPaydayCycleCSV()" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
+                <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
+                <span>ส่งออก Excel</span>
+              </button>
+            </div>
           </div>
 
           <!-- Date Range Pickers -->
@@ -507,28 +656,43 @@
             </div>
           </div>
 
-          <!-- Quick Presets & Save Active Cycle -->
+          <!-- Dynamic Saved Cycle Pill + Previous Cycle Pill + History Dropdown + Save Button -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
             <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-              <button type="button" onclick="applyPaydayPreset('25to24')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
-                25 เดือนก่อน - 24 เดือนนี้
+              <!-- Current Saved Cycle Pill -->
+              <button type="button" id="btnSavedCyclePreset" onclick="applySavedCyclePreset()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full border border-emerald-200 tap-action flex items-center gap-1">
+                <i class="ph ph-bookmark-simple text-xs"></i>
+                <span id="savedCyclePillText">งวดปัจจุบัน: -</span>
               </button>
-              <button type="button" onclick="applyPaydayPreset('calendarMonth')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
+
+              <!-- Previous Cycle Quick-Switch Pill -->
+              <button type="button" id="btnPrevCyclePreset" onclick="applyPrevCyclePreset()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full border border-indigo-200 tap-action flex items-center gap-1">
+                <i class="ph ph-arrow-u-up-left text-xs"></i>
+                <span id="prevCyclePillText">งวดที่แล้ว: -</span>
+              </button>
+
+              <!-- Archived Cycles History Dropdown -->
+              <select id="paydayHistorySelect" onchange="onSelectArchivedCycle()" class="hidden px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-700 rounded-full border border-slate-200/80 outline-none text-[11px]">
+                <option value="">ประวัติงวดที่ผ่านมา...</option>
+              </select>
+
+              <!-- Secondary Shortcut Pills -->
+              <button type="button" onclick="applyPaydayPreset('calendarMonth')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 rounded-full border border-slate-200/70 tap-action">
                 เดือนนี้ตามปฏิทิน
               </button>
-              <button type="button" onclick="applyPaydayPreset('last30')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-xl border border-slate-200/70 tap-action">
+              <button type="button" onclick="applyPaydayPreset('last30')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 rounded-full border border-slate-200/70 tap-action">
                 30 วันล่าสุด
               </button>
             </div>
 
-            <button type="button" id="btnSaveCycle" onclick="saveCurrentPaydayCycle()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs rounded-xl shadow-sm tap-action flex items-center justify-center gap-1.5">
+            <button type="button" id="btnSaveCycle" onclick="saveCurrentPaydayCycle()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs rounded-xl shadow-sm tap-action flex items-center justify-center gap-1.5 shrink-0">
               <i class="ph ph-floppy-disk text-sm"></i>
               <span>บันทึกเป็นงวดปัจจุบัน</span>
             </button>
           </div>
         </div>
 
-        <!-- Summary Metrics for Selected Period -->
+        <!-- 4 Summary Cards for Selected Period -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <div class="card p-3.5 sm:p-4 shadow-xs">
             <span class="text-[11px] text-slate-400 block mb-1">รายรับในงวดนี้</span>
@@ -543,19 +707,45 @@
           </div>
 
           <div class="card p-3.5 sm:p-4 shadow-xs">
-            <span class="text-[11px] text-slate-400 block mb-1">คงเหลือสุทธิในงวดนี้</span>
+            <span class="text-[11px] text-slate-400 block mb-1">คงเหลือสุทธิ</span>
             <div class="text-lg sm:text-xl text-slate-800 truncate" id="paydayBalance">฿0.00</div>
-            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydaySaveRate">อัตราคงเหลือ 0%</span>
+            <span class="text-[10px] text-slate-400 block mt-0.5" id="paydaySaveRate">คงเหลือ 0%</span>
           </div>
 
           <div class="card p-3.5 sm:p-4 shadow-xs">
-            <span class="text-[11px] text-slate-400 block mb-1">เฉลี่ยจ่าย / วัน</span>
+            <span class="text-[11px] text-slate-400 block mb-1">เฉลี่ยจ่ายต่อวัน</span>
             <div class="text-lg sm:text-xl text-amber-600 truncate" id="paydayAvgDaily">฿0.00</div>
             <span class="text-[10px] text-slate-400 block mt-0.5" id="paydayDaysInfo">0 วัน</span>
           </div>
         </div>
 
-        <!-- Category Breakdown Card -->
+        <!-- Comparison Strip with Previous Cycle -->
+        <div id="paydayComparisonBox" class="card p-3.5 sm:p-4 bg-slate-50/70 space-y-2.5 shadow-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 text-xs text-slate-700">
+              <i class="ph ph-scales text-indigo-600 text-base"></i>
+              <span>เทียบกับงวดก่อนหน้า</span>
+              <span id="compPrevRange" class="text-[11px] text-slate-400">(-)</span>
+            </div>
+            <span id="compExpenseDiffBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">-</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-white p-2 rounded-xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">รายรับงวดก่อน</span>
+              <span id="compPrevIncome" class="text-xs sm:text-sm text-emerald-600 truncate block">฿0.00</span>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">รายจ่ายงวดก่อน</span>
+              <span id="compPrevExpense" class="text-xs sm:text-sm text-rose-600 truncate block">฿0.00</span>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">คงเหลืองวดก่อน</span>
+              <span id="compPrevBalance" class="text-xs sm:text-sm text-slate-700 truncate block">฿0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Expense Breakdown -->
         <div class="card p-4 sm:p-5 space-y-3 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <h3 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
@@ -567,20 +757,18 @@
           <div id="paydayCategoryEmpty" class="py-6 text-center text-xs text-slate-400 hidden">ยังไม่มีรายจ่ายในช่วงวันที่เลือก</div>
         </div>
 
-        <!-- Transaction List for Selected Cycle -->
+        <!-- Transactions in Selected Cycle -->
         <div class="card p-4 sm:p-5 space-y-3 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <h3 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-              <i class="ph ph-list-bullets text-emerald-600 text-base"></i> รายการทั้งหมดในงวดนี้
+              <i class="ph ph-list-bullets text-emerald-600 text-base"></i> รายการในงวดนี้
             </h3>
             <span class="text-[11px] text-slate-400" id="paydayTxCountLabel">0 รายการ</span>
           </div>
 
-          <!-- Mobile Cards -->
           <div id="paydayTxCardsMobile" class="md:hidden space-y-2"></div>
 
-          <!-- Desktop Table -->
-          <div id="paydayTxTableWrapDesktop" class="hidden md:block overflow-x-auto">
+          <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
@@ -599,7 +787,7 @@
         </div>
       </section>
 
-      <!-- ==================== TAB 4: USER PIN SETTINGS ==================== -->
+      <!-- ==================== TAB 4: PIN SETTINGS ==================== -->
       <section id="tabContentSettings" class="space-y-4 hidden">
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -632,50 +820,113 @@
             </button>
           </div>
         </div>
+
+        <!-- App Icon Preview & Mobile Home Screen Install Card -->
+        <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-device-mobile text-emerald-600 text-base"></i>
+              <h2 class="text-slate-800 text-xs sm:text-sm">ไอคอนแอป & ติดตั้งลงหน้าจอมือถือ</h2>
+            </div>
+            <span class="text-[11px] text-slate-400">PWA App Icon</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <!-- Phone Home Screen Icon Preview -->
+            <div class="flex flex-col items-center gap-1.5 shrink-0 bg-slate-50 px-5 py-4 rounded-2xl border border-slate-200/70">
+              <div class="w-16 h-16 rounded-[18px] shadow-md shadow-emerald-700/25 overflow-hidden">
+                <svg viewBox="0 0 128 128" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Money Diary Home Icon Preview">
+                  <defs>
+                    <linearGradient id="mdPrevBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#10b981"/>
+                      <stop offset="100%" stop-color="#047857"/>
+                    </linearGradient>
+                    <linearGradient id="mdPrevCoin" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#fde047"/>
+                      <stop offset="100%" stop-color="#f59e0b"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="128" height="128" rx="28" fill="url(#mdPrevBg)"/>
+                  <path d="M0 28 C0 12 12 0 28 0 L100 0 C116 0 128 12 128 28 L128 52 C92 34 36 34 0 52 Z" fill="#ffffff" fill-opacity="0.12"/>
+                  <rect x="24" y="44" width="76" height="54" rx="14" fill="#ffffff"/>
+                  <rect x="68" y="60" width="36" height="22" rx="11" fill="#d1fae5"/>
+                  <circle cx="80" cy="71" r="5" fill="#047857"/>
+                  <circle cx="90" cy="38" r="18" fill="url(#mdPrevCoin)" stroke="#ffffff" stroke-width="4"/>
+                  <text x="90" y="45" text-anchor="middle" font-size="20" fill="#78350f">฿</text>
+                </svg>
+              </div>
+              <span class="text-[11px] text-slate-700">Money Diary</span>
+            </div>
+
+            <!-- Install Buttons & Guide -->
+            <div class="flex-1 space-y-2.5 text-xs w-full">
+              <p class="text-slate-500 leading-relaxed">
+                ติดตั้งเว็บแอปนี้ไว้บนหน้าจอโฮมของมือถือเพื่อให้เปิดใช้งานเต็มจอได้เหมือนแอปจริงพร้อมไอคอน Money Diary
+              </p>
+
+              <div class="flex flex-wrap gap-2">
+                <button type="button" id="btnInstallPwa" onclick="handleInstallPwa()" class="px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-xs tap-action inline-flex items-center gap-1.5">
+                  <i class="ph ph-download-simple text-sm"></i>
+                  <span>ติดตั้งแอปลงเครื่อง</span>
+                </button>
+                <button type="button" onclick="downloadAppIconPng()" class="px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl tap-action inline-flex items-center gap-1.5">
+                  <i class="ph ph-image text-emerald-600 text-sm"></i>
+                  <span>ดาวน์โหลด apple-touch-icon.png</span>
+                </button>
+              </div>
+
+              <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-[11px] text-slate-500 space-y-1">
+                <div>• <span class="text-slate-700">iPhone / iPad (Safari):</span> กดปุ่มแชร์ (Share) แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"</div>
+                <div>• <span class="text-slate-700">Android (Chrome):</span> กดปุ่ม "ติดตั้งแอปลงเครื่อง" หรือเมนู ⋮ เลือก "เพิ่มลงหน้าจอหลัก"</div>
+                <div>• <span class="text-slate-700">สำหรับ GitHub Pages:</span> ดาวน์โหลดไฟล์ <span class="font-mono text-slate-700">apple-touch-icon.png</span> ไปอัปโหลดวางคู่กับ <span class="font-mono text-slate-700">index.html</span> เพื่อให้ iPhone/iPad แสดงไอคอนได้ 100%</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ==================== TAB 5: ADMIN PANEL ==================== -->
       <section id="tabContentAdmin" class="space-y-4 hidden">
+        <!-- Admin Overview Stats -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3">
+          <div class="card p-3 sm:p-4 shadow-xs text-center">
+            <span class="text-[11px] text-slate-400 block">สมาชิกทั้งหมด</span>
+            <div class="text-lg sm:text-xl text-slate-800 mt-0.5" id="statTotalUsers">0</div>
+          </div>
+          <div class="card p-3 sm:p-4 shadow-xs text-center">
+            <span class="text-[11px] text-slate-400 block">ใช้งานปกติ</span>
+            <div class="text-lg sm:text-xl text-emerald-600 mt-0.5" id="statActiveUsers">0</div>
+          </div>
+          <div class="card p-3 sm:p-4 shadow-xs text-center">
+            <span class="text-[11px] text-slate-400 block">ถูกระงับ</span>
+            <div class="text-lg sm:text-xl text-rose-600 mt-0.5" id="statSuspendedUsers">0</div>
+          </div>
+        </div>
+
+        <!-- Members List Card -->
         <div class="card p-4 sm:p-5 space-y-4 shadow-xs">
           <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-            <div>
-              <h2 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
-                <i class="ph ph-shield-check text-indigo-600 text-base"></i> จัดการสมาชิก (Admin Panel)
-              </h2>
-              <p class="text-[11px] text-slate-400">ตรวจสอบผู้ใช้งาน แก้ไขรหัส PIN ดูรายการ หรือลบสมาชิก</p>
+            <div class="flex items-center gap-2">
+              <i class="ph ph-shield-check text-indigo-600 text-base"></i>
+              <h2 class="text-slate-800 text-xs sm:text-sm">จัดการสมาชิกและสิทธิ์การใช้งาน</h2>
             </div>
+            <span class="text-[11px] text-slate-400">Admin Panel</span>
           </div>
 
-          <!-- Member Stats -->
-          <div class="grid grid-cols-3 gap-2">
-            <div class="bg-indigo-50/50 p-2.5 sm:p-3 rounded-2xl border border-indigo-100 text-center">
-              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">สมาชิกทั้งหมด</span>
-              <span class="text-base sm:text-lg text-indigo-950" id="statTotalUsers">0</span>
-            </div>
-            <div class="bg-emerald-50/50 p-2.5 sm:p-3 rounded-2xl border border-emerald-100 text-center">
-              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">ใช้งานปกติ</span>
-              <span class="text-base sm:text-lg text-emerald-700" id="statActiveUsers">0</span>
-            </div>
-            <div class="bg-rose-50/50 p-2.5 sm:p-3 rounded-2xl border border-rose-100 text-center">
-              <span class="text-[10px] sm:text-[11px] text-slate-400 block mb-0.5">ถูกระงับ</span>
-              <span class="text-base sm:text-lg text-rose-700" id="statSuspendedUsers">0</span>
-            </div>
-          </div>
-
-          <!-- Mobile Admin User Cards -->
+          <!-- Mobile Member Cards -->
           <div id="adminMembersCardsMobile" class="md:hidden space-y-2.5"></div>
 
-          <!-- Desktop Admin User Table -->
+          <!-- Desktop / iPad Member Table -->
           <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs">
               <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th class="p-3">ชื่อ / อีเมล</th>
+                  <th class="p-3">สมาชิก</th>
                   <th class="p-3">สิทธิ์</th>
                   <th class="p-3">สถานะ</th>
                   <th class="p-3">PIN</th>
-                  <th class="p-3">เข้าล่าสุด / ครั้ง</th>
-                  <th class="p-3 text-right">การจัดการ</th>
+                  <th class="p-3">เข้าล่าสุด</th>
+                  <th class="p-3 text-right">จัดการ</th>
                 </tr>
               </thead>
               <tbody id="adminMembersTableDesktop" class="divide-y divide-slate-100 text-slate-700"></tbody>
@@ -683,86 +934,162 @@
           </div>
         </div>
 
-        <!-- Individual Member Ledger Inspection Card -->
-        <div id="adminInspectLedgerBox" class="card p-4 sm:p-5 space-y-4 border-indigo-200 shadow-xs hidden">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base shrink-0">
-                <i class="ph ph-receipt"></i>
-              </div>
-              <div class="min-w-0">
-                <h3 class="text-slate-800 text-xs sm:text-sm truncate">
-                  รายการของ: <span id="inspectTargetName" class="text-indigo-700">-</span>
-                </h3>
-                <p class="text-[10px] sm:text-[11px] text-slate-400 truncate" id="inspectTargetEmail">-</p>
-              </div>
+        <!-- Admin Individual Member Ledger Inspection Box -->
+        <div id="adminInspectLedgerBox" class="card p-4 sm:p-5 space-y-4 shadow-xs border-indigo-200 hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+            <div>
+              <h3 class="text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                <i class="ph ph-receipt text-indigo-600 text-base"></i>
+                <span>ตรวจสอบบัญชีของ: <span id="inspectTargetName" class="text-indigo-700">-</span></span>
+              </h3>
+              <p id="inspectTargetEmail" class="text-[11px] text-slate-400 font-mono mt-0.5">-</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="exportInspectCSV()" class="text-xs px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action flex items-center gap-1">
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="exportInspectCSV()" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 tap-action">
                 <i class="ph ph-file-csv text-emerald-600 text-sm"></i>
-                <span>ส่งออก CSV</span>
+                <span>ส่งออก Excel</span>
               </button>
-              <button type="button" onclick="closeAdminInspection()" class="text-xs px-2.5 py-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 tap-action">
-                ✕ ปิด
+              <button type="button" onclick="closeAdminInspection()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 tap-action" title="ปิดหน้าตรวจสอบ">
+                <i class="ph ph-x text-base"></i>
               </button>
             </div>
           </div>
 
-          <!-- Individual Summary -->
+          <!-- Inspected Member 4 Summary Cards -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <span class="text-[10px] text-slate-400 block mb-0.5">ยอดคงเหลือ</span>
-              <span class="text-sm sm:text-base text-slate-800 truncate block" id="inspectBalance">฿0.00</span>
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">คงเหลือสุทธิ</span>
+              <span id="inspectBalance" class="text-sm sm:text-base text-slate-800 truncate block mt-0.5">฿0.00</span>
             </div>
-            <div class="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
-              <span class="text-[10px] text-emerald-600 block mb-0.5">รายรับรวม</span>
-              <span class="text-sm sm:text-base text-emerald-700 truncate block" id="inspectIncome">฿0.00</span>
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">รายรับรวม</span>
+              <span id="inspectIncome" class="text-sm sm:text-base text-emerald-600 truncate block mt-0.5">฿0.00</span>
             </div>
-            <div class="p-2.5 bg-rose-50/50 rounded-xl border border-rose-100">
-              <span class="text-[10px] text-rose-600 block mb-0.5">รายจ่ายรวม</span>
-              <span class="text-sm sm:text-base text-rose-700 truncate block" id="inspectExpense">฿0.00</span>
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">รายจ่ายรวม</span>
+              <span id="inspectExpense" class="text-sm sm:text-base text-rose-600 truncate block mt-0.5">฿0.00</span>
             </div>
-            <div class="p-2.5 bg-amber-50/50 rounded-xl border border-amber-100">
-              <span class="text-[10px] text-amber-600 block mb-0.5">จ่ายวันนี้</span>
-              <span class="text-sm sm:text-base text-amber-700 truncate block" id="inspectTodayExpense">฿0.00</span>
+            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-[10px] text-slate-400 block">รายจ่ายวันนี้</span>
+              <span id="inspectTodayExpense" class="text-sm sm:text-base text-amber-600 truncate block mt-0.5">฿0.00</span>
             </div>
           </div>
 
-          <!-- Member Transaction Items -->
-          <div id="inspectTxListContainer" class="space-y-2"></div>
-          <div id="inspectTxEmpty" class="py-6 text-center text-xs text-slate-400 hidden">ไม่มีข้อมูลรายการของสมาชิกคนนี้</div>
+          <div id="inspectTxListContainer" class="space-y-2 max-h-96 overflow-y-auto"></div>
+          <div id="inspectTxEmpty" class="py-6 text-center text-xs text-slate-400 hidden">สมาชิกนี้ยังไม่มีรายการรายรับ-รายจ่าย</div>
         </div>
       </section>
-
     </main>
 
-    <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
-    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-1.5 py-1.5 flex items-center justify-around shadow-lg">
-      <button type="button" onclick="switchTab('record')" id="botTabRecord" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-emerald-600 tap-action">
-        <i class="ph ph-plus-circle text-xl"></i>
-        <span class="text-[10px]">บันทึก</span>
-      </button>
+    <!-- CONCEPT 2: MOBILE FLOATING GLASS DOCK -->
+    <div class="md:hidden fixed bottom-3 inset-x-3 z-40 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+      <nav class="floating-dock rounded-full px-2 py-1.5 flex items-center justify-between pointer-events-auto max-w-md mx-auto">
+        <button type="button" id="botTabRecord" onclick="switchTab('record')" class="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-600 text-white text-[11px] shadow-sm shadow-emerald-600/25 tap-action">
+          <i class="ph ph-plus-circle text-lg"></i>
+          <span class="dock-label">บันทึก</span>
+        </button>
+        <button type="button" id="botTabHistory" onclick="switchTab('history')" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-slate-400 hover:text-slate-700 text-[11px] tap-action">
+          <i class="ph ph-clock-counter-clockwise text-lg"></i>
+          <span class="dock-label hidden">ประวัติ</span>
+        </button>
+        <button type="button" id="botTabPayday" onclick="switchTab('payday')" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-slate-400 hover:text-slate-700 text-[11px] tap-action">
+          <i class="ph ph-chart-pie-slice text-lg"></i>
+          <span class="dock-label hidden">สรุปงวด</span>
+        </button>
+        <button type="button" id="botTabSettings" onclick="switchTab('settings')" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-slate-400 hover:text-slate-700 text-[11px] tap-action">
+          <i class="ph ph-key text-lg"></i>
+          <span class="dock-label hidden">PIN</span>
+        </button>
+        <button type="button" id="botTabAdmin" onclick="switchTab('admin')" class="hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-slate-400 hover:text-indigo-600 text-[11px] tap-action">
+          <i class="ph ph-shield-check text-lg"></i>
+          <span class="dock-label hidden">แอดมิน</span>
+        </button>
+      </nav>
+    </div>
+  </div>
 
-      <button type="button" onclick="switchTab('history')" id="botTabHistory" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
-        <i class="ph ph-clock-counter-clockwise text-xl"></i>
-        <span class="text-[10px]">ประวัติ</span>
-      </button>
+  <!-- ==================== START NEW PAYDAY CYCLE MODAL ==================== -->
+  <div id="newCycleModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="card p-5 w-full max-w-md shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+            <i class="ph ph-arrows-clockwise"></i>
+          </div>
+          <div>
+            <h3 class="text-slate-800 text-sm">เริ่มรอบเงินเดือนใหม่</h3>
+            <p class="text-[11px] text-slate-400">เก็บประวัติงวดเดิมไว้ดูย้อนหลัง และเริ่มงวดใหม่ทันที</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeNewCycleModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg tap-action">
+          <i class="ph ph-x text-base"></i>
+        </button>
+      </div>
 
-      <button type="button" onclick="switchTab('payday')" id="botTabPayday" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
-        <i class="ph ph-calendar-check text-xl"></i>
-        <span class="text-[10px]">สรุปงวด</span>
-      </button>
+      <!-- Closing Cycle Summary Box -->
+      <div class="p-3 bg-slate-50 border border-slate-200/70 rounded-2xl space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">งวดเดิมที่จะปิด:</span>
+          <span id="modalOldCycleRange" class="text-slate-700">-</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 text-center">
+          <div>
+            <span class="text-[10px] text-slate-400 block">รายรับ</span>
+            <span id="modalOldIncome" class="text-emerald-600">฿0.00</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block">รายจ่าย</span>
+            <span id="modalOldExpense" class="text-rose-600">฿0.00</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block">คงเหลือ</span>
+            <span id="modalOldBalance" class="text-slate-800">฿0.00</span>
+          </div>
+        </div>
+      </div>
 
-      <button type="button" onclick="switchTab('settings')" id="botTabSettings" class="flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
-        <i class="ph ph-key text-xl"></i>
-        <span class="text-[10px]">ตั้งค่า PIN</span>
-      </button>
+      <!-- New Cycle Date Pickers -->
+      <div class="grid grid-cols-2 gap-2.5 text-xs">
+        <div>
+          <label class="block text-slate-500 mb-1">วันเริ่มงวดใหม่</label>
+          <input type="date" id="newCycleStartInput" onchange="onNewCycleStartChange()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-800">
+        </div>
+        <div>
+          <label class="block text-slate-500 mb-1">วันสิ้นสุดงวดใหม่</label>
+          <input type="date" id="newCycleEndInput" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white outline-none focus:border-emerald-500 text-slate-800">
+        </div>
+      </div>
 
-      <button type="button" onclick="switchTab('admin')" id="botTabAdmin" class="hidden flex-1 py-1 flex flex-col items-center gap-0.5 text-slate-400 tap-action">
-        <i class="ph ph-shield-check text-xl"></i>
-        <span class="text-[10px]">แอดมิน</span>
-      </button>
-    </nav>
+      <!-- Handling Old Balance Options -->
+      <div class="space-y-2 text-xs">
+        <label class="block text-slate-500">จัดการยอดคงเหลือจากงวดเดิม</label>
+
+        <button type="button" id="optCardZero" onclick="selectNewCycleMode('zero')" class="w-full p-3 rounded-2xl border border-emerald-500 bg-emerald-50/60 text-left flex items-start gap-2.5 tap-action">
+          <i id="optIconZero" class="ph ph-radio-button text-emerald-600 text-base mt-0.5"></i>
+          <div class="min-w-0">
+            <div class="text-slate-800">เริ่มใหม่ที่ ฿0.00 (แนะนำ)</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">รีเซ็ตหน้าหลักเริ่มที่ 0 โดยไม่ลบประวัติเก่า เงินที่เหลือถือเป็นเงินเก็บ</p>
+          </div>
+        </button>
+
+        <button type="button" id="optCardCarry" onclick="selectNewCycleMode('carryover')" class="w-full p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-left flex items-start gap-2.5 tap-action">
+          <i id="optIconCarry" class="ph ph-circle text-slate-400 text-base mt-0.5"></i>
+          <div class="min-w-0">
+            <div class="text-slate-800">ยกยอดคงเหลือมาเป็นรายรับตั้งต้น</div>
+            <p id="modalCarryDesc" class="text-[11px] text-slate-500 mt-0.5">สร้างรายการรายรับ "ยกยอดจากงวดก่อน" ในวันเริ่มงวดใหม่อัตโนมัติ</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" onclick="closeNewCycleModal()" class="px-4 py-2.5 border border-slate-200 text-slate-600 text-xs rounded-xl tap-action">ยกเลิก</button>
+        <button type="button" id="btnConfirmNewCycle" onclick="confirmStartNewCycle()" class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs rounded-xl shadow-sm tap-action flex items-center gap-1.5">
+          <i class="ph ph-check text-sm"></i>
+          <span>ยืนยันเริ่มงวดใหม่</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ==================== ADMIN EDIT PIN MODAL ==================== -->
@@ -802,14 +1129,14 @@
   </div>
 
   <!-- ==================== TOAST NOTIFICATION ==================== -->
-  <div id="toastNotification" class="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:w-auto bg-slate-900 text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
+  <div id="toastNotification" class="fixed bottom-24 md:bottom-6 right-4 left-4 md:left-auto md:w-auto bg-slate-900 text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 opacity-0 pointer-events-none z-50">
     <i class="ph ph-check-circle text-emerald-400 text-base" id="toastIcon"></i>
     <span id="toastMessage">แจ้งเตือน</span>
   </div>
 
   <script>
     // =========================================================================
-    // 1. FIREBASE CONFIGURATION & INITIALIZATION (Live Production)
+    // 1. FIREBASE LIVE CONFIGURATION (money-diary-37328)
     // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyDZZmtoakybe_DnT6_FxZiieRMbuFxtFrw",
@@ -831,6 +1158,8 @@
     // 2. CONSTANTS & APPLICATION STATE
     // =========================================================================
     const ADMIN_AUTO_EMAIL = 'fg6464@gmail.com';
+    const PIN_SESSION_KEY = 'money_diary_active_pin_uid';
+    const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
     const CATEGORIES = {
       expense: [
@@ -849,11 +1178,10 @@
         { name: 'ค้าขาย', icon: '📈' },
         { name: 'โบนัส', icon: '💵' },
         { name: 'ของขวัญ', icon: '🎁' },
+        { name: 'ยกยอดจากงวดก่อน', icon: '🔄' },
         { name: 'อื่นๆ', icon: '💰' }
       ]
     };
-
-    const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
     let currentUser = null;
     let currentUserProfile = null;
@@ -862,11 +1190,14 @@
     let currentTab = 'record';
     let dashboardScope = 'cycle'; // 'cycle' | 'all'
 
-    // Active Payday Cycle Dates (YYYY-MM-DD)
-    let activeCycleStart = '';
-    let activeCycleEnd = '';
+    // Active Saved Payday Cycle (YYYY-MM-DD) & Archived Cycle History
+    let savedPaydayStart = '';
+    let savedPaydayEnd = '';
+    let paydayHistory = []; // Array of { start, end }, newest first
+    let selectedNewCycleMode = 'zero'; // 'zero' | 'carryover'
+    let modalOldCycleBalance = 0;
 
-    // Data Arrays & Listeners
+    // Data Arrays & Real-Time Listeners
     let userTransactions = [];
     let filteredHistoryTransactions = [];
     let paydayCycleTransactions = [];
@@ -875,7 +1206,7 @@
     let unsubscribeUserTx = null;
     let unsubscribeAdminUsers = null;
 
-    // PIN State
+    // Auth / PIN State
     let enteredPin = '';
     let publicUsersList = [];
     let isPinVisible = false;
@@ -883,7 +1214,7 @@
     let currentAuthMode = 'pin';
 
     // =========================================================================
-    // 3. LOCAL DATE HELPERS (Timezone-safe for Thailand +07:00)
+    // 3. DATE & FORMATTING HELPERS
     // =========================================================================
     function toLocalDateStr(dateObj) {
       const y = dateObj.getFullYear();
@@ -896,17 +1227,30 @@
       return toLocalDateStr(new Date());
     }
 
-    // Default civil servant payday cycle: 25th of previous month to 24th of current month
+    /**
+     * Default payday cycle based on today's date:
+     * - If today >= 25th: 25th of current month -> 24th of next month
+     * - If today < 25th: 25th of previous month -> 24th of current month
+     */
     function getDefaultPaydayCycle() {
       const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 25);
-      const end = new Date(now.getFullYear(), now.getMonth(), 24);
+      let start, end;
+      if (now.getDate() >= 25) {
+        start = new Date(now.getFullYear(), now.getMonth(), 25);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 24);
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 25);
+        end = new Date(now.getFullYear(), now.getMonth(), 24);
+      }
       return {
-        start: toLocalDateStr(start),
-        end: toLocalDateStr(end)
+        paydayStart: toLocalDateStr(start),
+        paydayEnd: toLocalDateStr(end)
       };
     }
 
+    /**
+     * Format YYYY-MM-DD into Thai short date (e.g., 2026-11-27 -> "27 พ.ย.")
+     */
     function formatThaiShortDate(dateStr) {
       if (!dateStr) return '-';
       const parts = dateStr.split('-');
@@ -930,24 +1274,147 @@
       return Math.max(1, diff);
     }
 
+    /**
+     * Compute the previous payday cycle range:
+     * Uses the most recent archived cycle from paydayHistory if available;
+     * otherwise calculates a 1-month window ending 1 day before savedPaydayStart.
+     */
+    function getPreviousCycleRange(refStartStr) {
+      const baseStart = refStartStr || savedPaydayStart;
+      // If looking for the cycle right before savedPaydayStart and we have archived history, use it
+      if (!refStartStr && paydayHistory && paydayHistory.length > 0) {
+        const latestArchived = paydayHistory[0];
+        if (latestArchived && latestArchived.start && latestArchived.end) {
+          return { start: latestArchived.start, end: latestArchived.end };
+        }
+      }
+      // Otherwise calculate 1-month window ending 1 day before baseStart
+      const sDate = new Date((baseStart || getTodayStr()) + 'T00:00:00');
+      const prevEnd = new Date(sDate);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStart = new Date(sDate);
+      prevStart.setMonth(prevStart.getMonth() - 1);
+      return {
+        start: toLocalDateStr(prevStart),
+        end: toLocalDateStr(prevEnd)
+      };
+    }
+
+    /**
+     * Calculate suggested end date (1 month ahead minus 1 day) from a start date string
+     */
+    function getOneMonthCycleEnd(startStr) {
+      const s = new Date((startStr || getTodayStr()) + 'T00:00:00');
+      const e = new Date(s);
+      e.setMonth(e.getMonth() + 1);
+      e.setDate(e.getDate() - 1);
+      return toLocalDateStr(e);
+    }
+
+    // LocalStorage helpers for per-user Payday Cycle & History cache
+    function getCachedCycle(uid) {
+      try {
+        const raw = localStorage.getItem(`md_payday_cycle_${uid}`);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.paydayStart && parsed.paydayEnd) return parsed;
+      } catch (e) {}
+      return null;
+    }
+
+    function setCachedCycle(uid, paydayStart, paydayEnd, historyArr) {
+      try {
+        const payload = {
+          paydayStart,
+          paydayEnd,
+          paydayHistory: Array.isArray(historyArr) ? historyArr : paydayHistory
+        };
+        localStorage.setItem(`md_payday_cycle_${uid}`, JSON.stringify(payload));
+      } catch (e) {}
+    }
+
     // =========================================================================
-    // 4. LIFECYCLE & AUTHENTICATION OBSERVER
+    // 4. UPDATE ALL PAYDAY CYCLE UI LABELS DYNAMICALLY
+    // =========================================================================
+    function updatePaydayCycleUI() {
+      const rangeStr = `${formatThaiShortDate(savedPaydayStart)} - ${formatThaiShortDate(savedPaydayEnd)}`;
+      const prevCycle = getPreviousCycleRange();
+      const prevRangeStr = `${formatThaiShortDate(prevCycle.start)} - ${formatThaiShortDate(prevCycle.end)}`;
+
+      // 1. Payday Summary Tab: Current & Previous Cycle Pills
+      const pillTextEl = document.getElementById('savedCyclePillText');
+      if (pillTextEl) {
+        pillTextEl.innerText = `งวดปัจจุบัน: ${rangeStr}`;
+      }
+      const prevPillEl = document.getElementById('prevCyclePillText');
+      if (prevPillEl) {
+        prevPillEl.innerText = `งวดที่แล้ว: ${prevRangeStr}`;
+      }
+
+      // 2. Payday Summary Tab: Archived Cycles Dropdown
+      const histSelect = document.getElementById('paydayHistorySelect');
+      if (histSelect) {
+        if (paydayHistory && paydayHistory.length > 0) {
+          histSelect.classList.remove('hidden');
+          histSelect.innerHTML = '<option value="">ประวัติงวดที่ผ่านมา...</option>';
+          paydayHistory.forEach((c, idx) => {
+            if (!c || !c.start || !c.end) return;
+            const opt = document.createElement('option');
+            opt.value = `${c.start}|${c.end}`;
+            opt.innerText = `งวด ${formatThaiShortDate(c.start)} - ${formatThaiShortDate(c.end)}${idx === 0 ? ' (ล่าสุด)' : ''}`;
+            histSelect.appendChild(opt);
+          });
+        } else {
+          histSelect.classList.add('hidden');
+        }
+      }
+
+      // 3. Home / Record Tab: Active cycle badge beside toggle
+      const dashCycleEl = document.getElementById('dashCycleRangeLabel');
+      if (dashCycleEl) {
+        dashCycleEl.innerText = `รอบงวด: ${rangeStr}`;
+      }
+
+      // 4. History Tab: Dropdown option texts & banner
+      const optPayday = document.getElementById('optFilterPayday');
+      if (optPayday) {
+        optPayday.innerText = `รอบเงินเดือนปัจจุบัน (${rangeStr})`;
+      }
+      const optPrevPayday = document.getElementById('optFilterPrevPayday');
+      if (optPrevPayday) {
+        optPrevPayday.innerText = `งวดที่แล้ว (${prevRangeStr})`;
+      }
+      updateHistoryPaydayBanner();
+    }
+
+    function updateHistoryPaydayBanner() {
+      const period = document.getElementById('filterPeriod')?.value || 'payday';
+      const prefixEl = document.getElementById('historyPaydayHintPrefix');
+      const rangeEl = document.getElementById('historyPaydayRangeText');
+      if (!prefixEl || !rangeEl) return;
+
+      if (period === 'prev_payday') {
+        const prev = getPreviousCycleRange();
+        prefixEl.innerText = 'งวดที่แล้ว:';
+        rangeEl.innerText = `${formatThaiShortDate(prev.start)} - ${formatThaiShortDate(prev.end)}`;
+      } else {
+        prefixEl.innerText = 'งวดปัจจุบัน:';
+        rangeEl.innerText = `${formatThaiShortDate(savedPaydayStart)} - ${formatThaiShortDate(savedPaydayEnd)}`;
+      }
+    }
+
+    // =========================================================================
+    // 5. LIFECYCLE & AUTHENTICATION INITIALIZATION
     // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
       const todayStr = getTodayStr();
       document.getElementById('txDate').value = todayStr;
       document.getElementById('dashTodayDateLabel').innerText = formatThaiShortDate(todayStr);
 
-      const defaultCycle = getDefaultPaydayCycle();
-      activeCycleStart = defaultCycle.start;
-      activeCycleEnd = defaultCycle.end;
-      document.getElementById('historyStartDate').value = activeCycleStart;
-      document.getElementById('historyEndDate').value = activeCycleEnd;
-
       renderCategoryButtons();
-      loadPublicUsersForPin();
+      initPwaAppIcon();
 
-      // Physical keyboard support for Quick PIN screen
+      // Physical keyboard support for PIN login screen
       document.addEventListener('keydown', (e) => {
         const authScreen = document.getElementById('authScreen');
         if (authScreen.classList.contains('hidden') || currentAuthMode !== 'pin') return;
@@ -968,27 +1435,69 @@
         const mainApp = document.getElementById('mainApp');
         const suspendedScreen = document.getElementById('suspendedScreen');
 
-        if (!user) {
-          // If user is already in a quick PIN session without Firebase Auth session, do not kick out
-          if (currentUser && currentUser.isPinSession) {
-            loader.classList.add('hidden');
-            return;
-          }
-          currentUser = null;
-          currentUserProfile = null;
-          if (unsubscribeUserTx) unsubscribeUserTx();
-          if (unsubscribeAdminUsers) unsubscribeAdminUsers();
-          authScreen.classList.remove('hidden');
-          mainApp.classList.add('hidden');
-          suspendedScreen.classList.add('hidden');
-          loader.classList.add('hidden');
-          loadPublicUsersForPin();
+        if (user) {
+          await initializeAuthenticatedUser(user);
           return;
         }
 
-        await initializeAuthenticatedUser(user);
+        // Check if there is an active Quick PIN session saved in localStorage
+        let savedPinUid = null;
+        try { savedPinUid = localStorage.getItem(PIN_SESSION_KEY); } catch (e) {}
+
+        if (savedPinUid) {
+          const restored = await restorePinSession(savedPinUid);
+          if (restored) {
+            loader.classList.add('hidden');
+            return;
+          }
+        }
+
+        // Otherwise show Auth screen
+        currentUser = null;
+        currentUserProfile = null;
+        if (unsubscribeUserTx) unsubscribeUserTx();
+        if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+        authScreen.classList.remove('hidden');
+        mainApp.classList.add('hidden');
+        suspendedScreen.classList.add('hidden');
+        loader.classList.add('hidden');
+        loadPublicUsersForPin();
       });
     });
+
+    async function restorePinSession(uid) {
+      try {
+        const snap = await db.collection('users').doc(uid).get();
+        if (!snap.exists) {
+          try { localStorage.removeItem(PIN_SESSION_KEY); } catch (e) {}
+          return false;
+        }
+        const data = snap.data();
+        if (data.status === 'suspended') {
+          try { localStorage.removeItem(PIN_SESSION_KEY); } catch (e) {}
+          return false;
+        }
+
+        // Ensure fg6464@gmail.com always has admin role
+        if ((data.email || '').toLowerCase() === ADMIN_AUTO_EMAIL && data.role !== 'admin') {
+          data.role = 'admin';
+          try { await db.collection('users').doc(uid).update({ role: 'admin' }); } catch (e) {}
+        }
+
+        currentUser = {
+          uid: uid,
+          email: data.email || '',
+          displayName: data.displayName || '',
+          isPinSession: true
+        };
+        currentUserProfile = { ...data, uid: uid };
+        applyLoggedInUI(currentUserProfile);
+        return true;
+      } catch (err) {
+        console.warn("Could not restore PIN session:", err);
+        return false;
+      }
+    }
 
     async function initializeAuthenticatedUser(user) {
       const loader = document.getElementById('appLoadingScreen');
@@ -1003,32 +1512,27 @@
         const userSnap = await userDocRef.get();
 
         const userEmailLower = (user.email || '').toLowerCase();
-        const defaultCycle = getDefaultPaydayCycle();
-
-        let role = 'user';
-        let status = 'active';
+        const defCycle = getDefaultPaydayCycle();
         let displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'สมาชิก');
 
-        // Auto-promote fg6464@gmail.com or first registered user
-        if (userEmailLower === ADMIN_AUTO_EMAIL) {
-          role = 'admin';
-        } else if (!userSnap.exists) {
-          const allUsersSnap = await db.collection('users').limit(1).get();
-          if (allUsersSnap.empty) {
-            role = 'admin';
-          }
-        }
-
         if (!userSnap.exists) {
+          let role = 'user';
+          if (userEmailLower === ADMIN_AUTO_EMAIL) {
+            role = 'admin';
+          } else {
+            const existingSnap = await db.collection('users').limit(1).get();
+            if (existingSnap.empty) role = 'admin';
+          }
+
           const newProfile = {
             uid: user.uid,
             email: user.email,
             displayName: displayName,
             role: role,
-            status: status,
+            status: 'active',
             pin: '1234',
-            cycleStartDate: defaultCycle.start,
-            cycleEndDate: defaultCycle.end,
+            paydayStart: defCycle.paydayStart,
+            paydayEnd: defCycle.paydayEnd,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
             loginCount: 1
@@ -1036,29 +1540,38 @@
           await userDocRef.set(newProfile);
           currentUserProfile = newProfile;
         } else {
-          const existingData = userSnap.data();
+          const existing = userSnap.data();
           const updates = {
             lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
             loginCount: firebase.firestore.FieldValue.increment(1)
           };
 
-          if (userEmailLower === ADMIN_AUTO_EMAIL && existingData.role !== 'admin') {
+          if (userEmailLower === ADMIN_AUTO_EMAIL && existing.role !== 'admin') {
             updates.role = 'admin';
-            existingData.role = 'admin';
+            existing.role = 'admin';
           }
-          if (!existingData.pin) {
+          if (!existing.pin) {
             updates.pin = '1234';
-            existingData.pin = '1234';
-          }
-          if (!existingData.cycleStartDate || !existingData.cycleEndDate) {
-            updates.cycleStartDate = defaultCycle.start;
-            updates.cycleEndDate = defaultCycle.end;
-            existingData.cycleStartDate = defaultCycle.start;
-            existingData.cycleEndDate = defaultCycle.end;
+            existing.pin = '1234';
           }
 
-          await userDocRef.update(updates);
-          currentUserProfile = existingData;
+          // Resolve saved payday cycle (supports paydayStart/paydayEnd & legacy cycleStartDate/cycleEndDate)
+          const resolvedStart = existing.paydayStart || existing.cycleStartDate;
+          const resolvedEnd = existing.paydayEnd || existing.cycleEndDate;
+          if (!resolvedStart || !resolvedEnd) {
+            updates.paydayStart = defCycle.paydayStart;
+            updates.paydayEnd = defCycle.paydayEnd;
+            existing.paydayStart = defCycle.paydayStart;
+            existing.paydayEnd = defCycle.paydayEnd;
+          } else if (!existing.paydayStart || !existing.paydayEnd) {
+            updates.paydayStart = resolvedStart;
+            updates.paydayEnd = resolvedEnd;
+            existing.paydayStart = resolvedStart;
+            existing.paydayEnd = resolvedEnd;
+          }
+
+          await userDocRef.set(updates, { merge: true });
+          currentUserProfile = { ...existing, uid: user.uid };
         }
 
         if (currentUserProfile.status === 'suspended') {
@@ -1072,7 +1585,7 @@
         applyLoggedInUI(currentUserProfile);
       } catch (err) {
         console.error("Auth init error:", err);
-        showToast('การเชื่อมต่อมีปัญหา: ' + err.message, 'warning');
+        showToast('การเชื่อมต่อฐานข้อมูลมีปัญหา: ' + err.message, 'warning');
       } finally {
         loader.classList.add('hidden');
       }
@@ -1083,24 +1596,35 @@
       const mainApp = document.getElementById('mainApp');
       const suspendedScreen = document.getElementById('suspendedScreen');
 
-      // Remember last email for quick PIN selector
       try {
         localStorage.setItem('last_money_diary_email', profile.email || '');
       } catch (e) {}
 
-      // Set active payday cycle from profile (or default 25th prev - 24th curr)
+      // Load paydayStart & paydayEnd: Firestore -> localStorage -> default
+      const cached = getCachedCycle(profile.uid);
       const def = getDefaultPaydayCycle();
-      activeCycleStart = profile.cycleStartDate || def.start;
-      activeCycleEnd = profile.cycleEndDate || def.end;
+      savedPaydayStart = profile.paydayStart || profile.cycleStartDate || (cached && cached.paydayStart) || def.paydayStart;
+      savedPaydayEnd = profile.paydayEnd || profile.cycleEndDate || (cached && cached.paydayEnd) || def.paydayEnd;
+      paydayHistory = Array.isArray(profile.paydayHistory)
+        ? profile.paydayHistory
+        : (cached && Array.isArray(cached.paydayHistory) ? cached.paydayHistory : []);
 
-      document.getElementById('paydayStartInput').value = activeCycleStart;
-      document.getElementById('paydayEndInput').value = activeCycleEnd;
-      document.getElementById('historyStartDate').value = activeCycleStart;
-      document.getElementById('historyEndDate').value = activeCycleEnd;
-      updateCycleLabels();
+      currentUserProfile.paydayStart = savedPaydayStart;
+      currentUserProfile.paydayEnd = savedPaydayEnd;
+      currentUserProfile.paydayHistory = paydayHistory;
+      setCachedCycle(profile.uid, savedPaydayStart, savedPaydayEnd, paydayHistory);
 
-      // Update Navbar
-      document.getElementById('navUserEmail').innerText = `${profile.displayName || 'ฉัน'} (${profile.email || '-'})`;
+      // Sync date pickers with saved cycle
+      document.getElementById('paydayStartInput').value = savedPaydayStart;
+      document.getElementById('paydayEndInput').value = savedPaydayEnd;
+      document.getElementById('historyStartDate').value = savedPaydayStart;
+      document.getElementById('historyEndDate').value = savedPaydayEnd;
+
+      // Update all cycle labels across Home, History, and Payday Summary
+      updatePaydayCycleUI();
+
+      // Update Navbar & Role Badges
+      document.getElementById('navUserEmail').innerText = `${profile.displayName || 'สมาชิก'} (${profile.email || '-'})`;
       const navBadge = document.getElementById('navRoleBadge');
       const botTabAdmin = document.getElementById('botTabAdmin');
       const deskTabAdmin = document.getElementById('deskTabAdmin');
@@ -1108,14 +1632,14 @@
       if (profile.role === 'admin') {
         navBadge.innerText = 'Admin';
         navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0';
-        botTabAdmin.classList.remove('hidden');
-        deskTabAdmin.classList.remove('hidden');
+        if (botTabAdmin) botTabAdmin.classList.remove('hidden');
+        if (deskTabAdmin) deskTabAdmin.classList.remove('hidden');
         listenToAdminUsers();
       } else {
         navBadge.innerText = 'User';
         navBadge.className = 'text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0';
-        botTabAdmin.classList.add('hidden');
-        deskTabAdmin.classList.add('hidden');
+        if (botTabAdmin) botTabAdmin.classList.add('hidden');
+        if (deskTabAdmin) deskTabAdmin.classList.add('hidden');
       }
 
       authScreen.classList.add('hidden');
@@ -1128,14 +1652,16 @@
     }
 
     // =========================================================================
-    // 5. QUICK PIN LOGIN SYSTEM
+    // 6. QUICK PIN LOGIN SYSTEM
     // =========================================================================
     async function loadPublicUsersForPin() {
       try {
         const snap = await db.collection('users').get();
         publicUsersList = [];
         const select = document.getElementById('pinUserSelect');
+        const avatarsWrap = document.getElementById('pinMemberAvatars');
         select.innerHTML = '';
+        avatarsWrap.innerHTML = '';
 
         let savedEmail = '';
         try { savedEmail = localStorage.getItem('last_money_diary_email') || ''; } catch (e) {}
@@ -1163,23 +1689,53 @@
           select.appendChild(opt);
         });
 
+        renderPinMemberAvatars();
         onPinUserChanged();
       } catch (err) {
         console.error("Error loading users for PIN:", err);
-        const select = document.getElementById('pinUserSelect');
-        select.innerHTML = '<option value="">กรุณาเข้าสู่ระบบด้วยอีเมล/รหัสผ่านก่อน</option>';
+        document.getElementById('pinUserSelect').innerHTML = '<option value="">กรุณาเข้าสู่ระบบด้วยอีเมล/รหัสผ่าน</option>';
       }
+    }
+
+    function renderPinMemberAvatars() {
+      const avatarsWrap = document.getElementById('pinMemberAvatars');
+      const selectedEmail = document.getElementById('pinUserSelect').value;
+      avatarsWrap.innerHTML = '';
+
+      publicUsersList.forEach(u => {
+        const isSelected = u.email === selectedEmail;
+        const name = u.displayName || (u.email ? u.email.split('@')[0] : 'U');
+        const initial = name.charAt(0).toUpperCase();
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          document.getElementById('pinUserSelect').value = u.email;
+          renderPinMemberAvatars();
+          onPinUserChanged();
+        };
+        btn.className = `flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs shrink-0 tap-action ${
+          isSelected
+            ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+        }`;
+        btn.innerHTML = `
+          <span class="w-5 h-5 rounded-full ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'} flex items-center justify-center text-[10px]">${escapeHtml(initial)}</span>
+          <span class="max-w-[90px] truncate">${escapeHtml(name)}</span>
+        `;
+        avatarsWrap.appendChild(btn);
+      });
     }
 
     function onPinUserChanged() {
       clearPin();
+      renderPinMemberAvatars();
       document.getElementById('pinErrorMsg').classList.add('hidden');
     }
 
     function pressPinDigit(digit) {
       const selectedEmail = document.getElementById('pinUserSelect').value;
       const targetUser = publicUsersList.find(u => u.email === selectedEmail);
-      const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
+      const targetPinLen = (targetUser && targetUser.pin) ? String(targetUser.pin).length : 4;
 
       if (enteredPin.length >= targetPinLen) return;
       enteredPin += digit;
@@ -1205,7 +1761,7 @@
     function updatePinDots() {
       const selectedEmail = document.getElementById('pinUserSelect').value;
       const targetUser = publicUsersList.find(u => u.email === selectedEmail);
-      const targetPinLen = (targetUser && targetUser.pin) ? targetUser.pin.length : 4;
+      const targetPinLen = (targetUser && targetUser.pin) ? String(targetUser.pin).length : 4;
 
       document.getElementById('pinPromptHint').innerText = `กดรหัส PIN ${targetPinLen} หลักเพื่อเข้าใช้งานทันที`;
 
@@ -1253,47 +1809,59 @@
         return;
       }
 
-      // PIN matched! Attempt Firebase Auth with saved device session credential if present
+      const uid = targetUser.uid || targetUser.id;
+
+      // Re-fetch freshest profile from Firestore so saved paydayStart/paydayEnd is always latest
+      let freshProfile = { ...targetUser, uid: uid };
+      try {
+        const freshSnap = await db.collection('users').doc(uid).get();
+        if (freshSnap.exists) {
+          freshProfile = { ...freshSnap.data(), uid: uid };
+        }
+      } catch (e) {}
+
+      if ((freshProfile.email || '').toLowerCase() === ADMIN_AUTO_EMAIL && freshProfile.role !== 'admin') {
+        freshProfile.role = 'admin';
+      }
+
+      // Persist Quick PIN session in localStorage
+      try { localStorage.setItem(PIN_SESSION_KEY, uid); } catch (e) {}
+
+      // Attempt Firebase Auth sign-in if session credential exists
       let cachedPwd = '';
       try { cachedPwd = sessionStorage.getItem(`_md_pwd_${selectedEmail}`) || ''; } catch (e) {}
-
       if (cachedPwd) {
         try {
           await auth.signInWithEmailAndPassword(selectedEmail, cachedPwd);
           clearPin();
-          showToast(`ยินดีต้อนรับ ${targetUser.displayName || targetUser.email}`);
+          showToast(`ยินดีต้อนรับ ${freshProfile.displayName || freshProfile.email}`);
           return;
-        } catch (e) {
-          console.warn("Cached credential login failed, using quick PIN profile session:", e);
-        }
+        } catch (e) {}
       }
 
-      // Seamless Quick-Access PIN session
       currentUser = {
-        uid: targetUser.uid || targetUser.id,
-        email: targetUser.email,
-        displayName: targetUser.displayName,
+        uid: uid,
+        email: freshProfile.email || selectedEmail,
+        displayName: freshProfile.displayName || '',
         isPinSession: true
       };
-      currentUserProfile = { ...targetUser, uid: targetUser.uid || targetUser.id };
+      currentUserProfile = freshProfile;
 
       try {
-        await db.collection('users').doc(currentUser.uid).update({
+        await db.collection('users').doc(uid).set({
+          role: freshProfile.role || 'user',
           lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
           loginCount: firebase.firestore.FieldValue.increment(1)
-        });
-      } catch (e) {
-        // Non-blocking if Firestore rules require auth for write
-        console.warn("Quick PIN login metadata update skipped:", e.message);
-      }
+        }, { merge: true });
+      } catch (e) {}
 
       clearPin();
-      showToast(`เข้าสู่ระบบสำเร็จ: ${targetUser.displayName || targetUser.email}`);
+      showToast(`เข้าสู่ระบบสำเร็จ: ${freshProfile.displayName || freshProfile.email}`);
       applyLoggedInUI(currentUserProfile);
     }
 
     // =========================================================================
-    // 6. AUTH VIEW SWITCHER & PASSWORD LOGIN / REGISTER
+    // 7. AUTH VIEW SWITCHER & EMAIL/PASSWORD LOGIN / REGISTRATION
     // =========================================================================
     function switchAuthView(mode) {
       currentAuthMode = mode;
@@ -1378,8 +1946,8 @@
             role: role,
             status: 'active',
             pin: initialPin,
-            cycleStartDate: def.start,
-            cycleEndDate: def.end,
+            paydayStart: def.paydayStart,
+            paydayEnd: def.paydayEnd,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
             loginCount: 1
@@ -1401,6 +1969,7 @@
     async function handleLogout() {
       if (unsubscribeUserTx) unsubscribeUserTx();
       if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+      try { localStorage.removeItem(PIN_SESSION_KEY); } catch (e) {}
       currentUser = null;
       currentUserProfile = null;
       try {
@@ -1413,7 +1982,7 @@
     }
 
     // =========================================================================
-    // 7. NAVIGATION & DASHBOARD SCOPE TOGGLE
+    // 8. TAB NAVIGATION & DASHBOARD SCOPE TOGGLE
     // =========================================================================
     function switchTab(tab) {
       currentTab = tab;
@@ -1427,8 +1996,10 @@
 
         if (contentEl) contentEl.classList.add('hidden');
         if (botEl) {
-          botEl.classList.remove('text-emerald-600', 'text-indigo-600');
-          botEl.classList.add('text-slate-400');
+          const isHiddenAdmin = (t === 'admin' && botEl.classList.contains('hidden'));
+          botEl.className = `${isHiddenAdmin ? 'hidden ' : ''}flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-slate-400 ${t === 'admin' ? 'hover:text-indigo-600' : 'hover:text-slate-700'} text-[11px] tap-action`;
+          const lbl = botEl.querySelector('.dock-label');
+          if (lbl) lbl.classList.add('hidden');
         }
         if (deskEl) {
           deskEl.classList.remove('bg-white', 'text-slate-800', 'text-indigo-700', 'shadow-sm');
@@ -1443,8 +2014,12 @@
 
       if (activeContent) activeContent.classList.remove('hidden');
       if (activeBot) {
-        activeBot.classList.remove('text-slate-400');
-        activeBot.classList.add(tab === 'admin' ? 'text-indigo-600' : 'text-emerald-600');
+        const pillColor = tab === 'admin'
+          ? 'bg-indigo-600 shadow-indigo-600/25'
+          : 'bg-emerald-600 shadow-emerald-600/25';
+        activeBot.className = `flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-white text-[11px] shadow-sm tap-action ${pillColor}`;
+        const lbl = activeBot.querySelector('.dock-label');
+        if (lbl) lbl.classList.remove('hidden');
       }
       if (activeDesk) {
         activeDesk.classList.remove('text-slate-500');
@@ -1452,7 +2027,7 @@
       }
 
       if (tab === 'history') {
-        renderUserHistory();
+        renderTransactions();
       } else if (tab === 'payday') {
         renderPaydaySummary();
       } else if (tab === 'settings') {
@@ -1469,37 +2044,34 @@
       const badge = document.getElementById('dashActiveCycleBadge');
 
       if (scope === 'cycle') {
-        btnCycle.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action';
-        btnAll.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-        badge.classList.remove('hidden');
-        document.getElementById('dashBalanceLabel').innerText = 'คงเหลืองวดนี้';
-        document.getElementById('dashIncomeLabel').innerText = 'รายรับงวดนี้';
-        document.getElementById('dashExpenseLabel').innerText = 'รายจ่ายงวดนี้';
+        btnCycle.className = 'px-3 py-1 rounded-full bg-white text-slate-800 shadow-xs tap-action';
+        btnAll.className = 'px-3 py-1 rounded-full text-slate-500 hover:text-slate-800 tap-action';
+        if (badge) badge.classList.remove('opacity-50');
+        document.getElementById('dashBalanceLabel').innerText = 'ยอดคงเหลือสุทธิในงวดนี้';
+        document.getElementById('dashIncomeLabel').innerText = 'รายรับ';
+        document.getElementById('dashExpenseLabel').innerText = 'รายจ่าย';
       } else {
-        btnAll.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm tap-action';
-        btnCycle.className = 'px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 tap-action';
-        badge.classList.add('hidden');
-        document.getElementById('dashBalanceLabel').innerText = 'ยอดคงเหลือรวม';
-        document.getElementById('dashIncomeLabel').innerText = 'รายรับทั้งหมด';
-        document.getElementById('dashExpenseLabel').innerText = 'รายจ่ายทั้งหมด';
+        btnAll.className = 'px-3 py-1 rounded-full bg-white text-slate-800 shadow-xs tap-action';
+        btnCycle.className = 'px-3 py-1 rounded-full text-slate-500 hover:text-slate-800 tap-action';
+        if (badge) badge.classList.add('opacity-50');
+        document.getElementById('dashBalanceLabel').innerText = 'ยอดคงเหลือสุทธิ (รวมทั้งหมด)';
+        document.getElementById('dashIncomeLabel').innerText = 'รายรับรวม';
+        document.getElementById('dashExpenseLabel').innerText = 'รายจ่ายรวม';
       }
 
-      updateUserSummary();
-    }
-
-    function updateCycleLabels() {
-      const label = `${formatThaiShortDate(activeCycleStart)} - ${formatThaiShortDate(activeCycleEnd)}`;
-      document.getElementById('dashCycleRangeLabel').innerText = label;
-      document.getElementById('historyPaydayRangeText').innerText = label;
+      updateSummaryCards();
     }
 
     // =========================================================================
-    // 8. RECORD FORM & CATEGORIES
+    // 9. RECORD ENTRY & CATEGORIES
     // =========================================================================
     function renderCategoryButtons() {
       const container = document.getElementById('categoryContainer');
       container.innerHTML = '';
       const list = CATEGORIES[currentEntryType];
+      const selectedCls = currentEntryType === 'expense'
+        ? 'border-rose-300 bg-rose-50/70 text-rose-700 ring-1 ring-rose-300/60'
+        : 'border-emerald-300 bg-emerald-50/70 text-emerald-700 ring-1 ring-emerald-300/60';
 
       list.forEach(cat => {
         const isSelected = currentCategory && currentCategory.name === cat.name;
@@ -1511,8 +2083,8 @@
         };
         btn.className = `p-2 sm:p-2.5 rounded-2xl flex flex-col items-center justify-center gap-0.5 border text-center transition-all tap-action ${
           isSelected
-            ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 ring-1 ring-emerald-500/40'
-            : 'border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600'
+            ? selectedCls
+            : 'border-slate-100 bg-slate-50/70 hover:bg-slate-100 text-slate-600'
         }`;
         btn.innerHTML = `
           <span class="text-xl sm:text-2xl">${cat.icon}</span>
@@ -1526,14 +2098,38 @@
       currentEntryType = type;
       const expBtn = document.getElementById('btnTypeExpense');
       const incBtn = document.getElementById('btnTypeIncome');
+      const box = document.getElementById('amountBoxWrapper');
+      const label = document.getElementById('amountTintLabel');
+      const prefix = document.getElementById('currencyPrefix');
+      const saveBtn = document.getElementById('saveTxBtn');
 
       if (type === 'expense') {
-        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-sm tap-action';
-        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        expBtn.className = 'py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-rose-600 shadow-xs tap-action';
+        incBtn.className = 'py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        if (box) box.className = 'entry-tint-expense rounded-2xl p-3.5 sm:p-4 border transition-all duration-300 space-y-2.5';
+        if (label) {
+          label.innerText = 'จำนวนเงินรายจ่าย (บาท)';
+          label.className = 'text-rose-500';
+        }
+        if (prefix) prefix.className = 'text-2xl text-rose-400 mr-2 transition-colors';
+        if (saveBtn) {
+          saveBtn.className = 'w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm rounded-2xl shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-2 tap-action';
+          saveBtn.innerHTML = '<i class="ph ph-check text-base"></i><span>บันทึกรายจ่าย</span>';
+        }
         currentCategory = CATEGORIES.expense[0];
       } else {
-        incBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white text-emerald-600 shadow-sm tap-action';
-        expBtn.className = 'py-2.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        incBtn.className = 'py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-emerald-600 shadow-xs tap-action';
+        expBtn.className = 'py-2.5 text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 tap-action';
+        if (box) box.className = 'entry-tint-income rounded-2xl p-3.5 sm:p-4 border transition-all duration-300 space-y-2.5';
+        if (label) {
+          label.innerText = 'จำนวนเงินรายรับ (บาท)';
+          label.className = 'text-emerald-600';
+        }
+        if (prefix) prefix.className = 'text-2xl text-emerald-500 mr-2 transition-colors';
+        if (saveBtn) {
+          saveBtn.className = 'w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm rounded-2xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 tap-action';
+          saveBtn.innerHTML = '<i class="ph ph-check text-base"></i><span>บันทึกรายรับ</span>';
+        }
         currentCategory = CATEGORIES.income[0];
       }
       renderCategoryButtons();
@@ -1591,12 +2187,14 @@
         showToast('บันทึกไม่สำเร็จ: ' + err.message, 'warning');
       } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="ph ph-check text-base"></i><span>บันทึกรายการ</span>';
+        saveBtn.innerHTML = currentEntryType === 'expense'
+          ? '<i class="ph ph-check text-base"></i><span>บันทึกรายจ่าย</span>'
+          : '<i class="ph ph-check text-base"></i><span>บันทึกรายรับ</span>';
       }
     }
 
     // =========================================================================
-    // 9. REAL-TIME TRANSACTIONS LISTENER & DASHBOARD SUMMARY
+    // 10. REAL-TIME TRANSACTIONS LISTENER & SUMMARY CARDS
     // =========================================================================
     function listenToUserTransactions(uid) {
       if (unsubscribeUserTx) unsubscribeUserTx();
@@ -1607,18 +2205,16 @@
           snapshot.forEach(doc => {
             userTransactions.push({ id: doc.id, ...doc.data() });
           });
-          updateUserSummary();
-          renderUserHistory();
-          if (currentTab === 'payday') {
-            renderPaydaySummary();
-          }
+          updateSummaryCards();
+          renderTransactions();
+          renderPaydaySummary();
         }, err => {
-          console.error("Tx listener error:", err);
+          console.error("Transactions listener error:", err);
           showToast('โหลดรายการไม่สำเร็จ: ' + err.message, 'warning');
         });
     }
 
-    function updateUserSummary() {
+    function updateSummaryCards() {
       let income = 0;
       let expense = 0;
       let todayExpense = 0;
@@ -1632,9 +2228,8 @@
           todayExpense += val;
         }
 
-        // Filter by active payday cycle if scope is 'cycle'
         if (dashboardScope === 'cycle') {
-          if (!tDate || tDate < activeCycleStart || tDate > activeCycleEnd) {
+          if (!tDate || tDate < savedPaydayStart || tDate > savedPaydayEnd) {
             return;
           }
         }
@@ -1651,32 +2246,63 @@
       document.getElementById('dashIncome').innerText = formatCurrency(income);
       document.getElementById('dashExpense').innerText = formatCurrency(expense);
       document.getElementById('dashTodayExpense').innerText = formatCurrency(todayExpense);
+
+      // Concept 1: Update Hero Wallet Card Budget Progress Bar & Low-Budget Alert State
+      const heroCard = document.getElementById('heroWalletCard');
+      const progLabel = document.getElementById('heroProgressLabel');
+      const remLabel = document.getElementById('heroRemainLabel');
+      const progBar = document.getElementById('heroProgressBar');
+
+      if (heroCard && progLabel && remLabel && progBar) {
+        if (income > 0) {
+          const usedPct = Math.min(100, Math.max(0, Math.round((expense / income) * 100)));
+          const remainPct = Math.max(0, Math.round((balance / income) * 100));
+          const isLowBudget = balance < 0 || remainPct <= 20;
+
+          if (balance < 0) {
+            progLabel.innerText = 'รายจ่ายเกินรายรับแล้ว';
+            remLabel.innerText = 'ติดลบ';
+            progBar.style.width = '4%';
+          } else {
+            progLabel.innerText = isLowBudget
+              ? `ใช้เงินไปแล้ว ${usedPct}% (ใกล้หมด)`
+              : `ใช้เงินไปแล้ว ${usedPct}%`;
+            remLabel.innerText = `เหลือให้ใช้อีก ${remainPct}%`;
+            progBar.style.width = `${Math.max(4, Math.min(100, remainPct))}%`;
+          }
+
+          if (isLowBudget) {
+            heroCard.classList.add('low-budget', 'shadow-rose-700/25');
+            heroCard.classList.remove('shadow-emerald-700/20');
+          } else {
+            heroCard.classList.remove('low-budget', 'shadow-rose-700/25');
+            heroCard.classList.add('shadow-emerald-700/20');
+          }
+        } else {
+          heroCard.classList.remove('low-budget', 'shadow-rose-700/25');
+          heroCard.classList.add('shadow-emerald-700/20');
+          progLabel.innerText = expense > 0 ? 'ยังไม่ได้บันทึกรายรับในรอบนี้' : 'พร้อมเริ่มบันทึกรายการใหม่';
+          remLabel.innerText = 'คงเหลือ 0%';
+          progBar.style.width = '0%';
+        }
+      }
     }
 
     // =========================================================================
-    // 10. HISTORY TAB (With Payday Cycle & Custom Date Range Filter)
+    // 11. HISTORY TAB
     // =========================================================================
     function onHistoryPeriodChange() {
       const period = document.getElementById('filterPeriod').value;
       const customRow = document.getElementById('historyCustomDateRow');
       const paydayHint = document.getElementById('historyPaydayHint');
 
-      if (period === 'custom') {
-        customRow.classList.remove('hidden');
-      } else {
-        customRow.classList.add('hidden');
-      }
-
-      if (period === 'payday') {
-        paydayHint.classList.remove('hidden');
-      } else {
-        paydayHint.classList.add('hidden');
-      }
-
-      renderUserHistory();
+      customRow.classList.toggle('hidden', period !== 'custom');
+      paydayHint.classList.toggle('hidden', period !== 'payday' && period !== 'prev_payday');
+      updateHistoryPaydayBanner();
+      renderTransactions();
     }
 
-    function renderUserHistory() {
+    function renderTransactions() {
       const keyword = (document.getElementById('filterSearch')?.value || '').trim().toLowerCase();
       const period = document.getElementById('filterPeriod')?.value || 'payday';
       const typeFilter = document.getElementById('filterType')?.value || 'all';
@@ -1692,13 +2318,16 @@
       const mondayStr = toLocalDateStr(monday);
 
       const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const prevCycle = getPreviousCycleRange();
 
       filteredHistoryTransactions = userTransactions.filter(item => {
         const d = item.date || '';
         if (typeFilter !== 'all' && item.type !== typeFilter) return false;
 
         if (period === 'payday') {
-          if (!d || d < activeCycleStart || d > activeCycleEnd) return false;
+          if (!d || d < savedPaydayStart || d > savedPaydayEnd) return false;
+        } else if (period === 'prev_payday') {
+          if (!d || d < prevCycle.start || d > prevCycle.end) return false;
         } else if (period === 'custom') {
           if (customStart && d < customStart) return false;
           if (customEnd && d > customEnd) return false;
@@ -1757,9 +2386,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
-                <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
-                  ${isExp ? 'จ่าย' : 'รับ'}
-                </span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'จ่าย' : 'รับ'}</span>
               </div>
               <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
             </div>
@@ -1776,7 +2403,7 @@
         `;
         mobileContainer.appendChild(card);
 
-        // Desktop Row
+        // Desktop Table Row
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/70 transition-colors';
         tr.innerHTML = `
@@ -1825,16 +2452,43 @@
     }
 
     // =========================================================================
-    // 11. PAYDAY CYCLE SUMMARY (รอบเงินเดือน & เลือกวันที่อิสระ)
+    // 12. PAYDAY SUMMARY TAB (Dynamic Saved Cycle + Previous Cycle + New Cycle)
     // =========================================================================
+    function applySavedCyclePreset() {
+      document.getElementById('paydayStartInput').value = savedPaydayStart;
+      document.getElementById('paydayEndInput').value = savedPaydayEnd;
+      const histSelect = document.getElementById('paydayHistorySelect');
+      if (histSelect) histSelect.value = '';
+      renderPaydaySummary();
+      showToast(`แสดงงวดปัจจุบัน: ${formatThaiShortDate(savedPaydayStart)} - ${formatThaiShortDate(savedPaydayEnd)}`);
+    }
+
+    function applyPrevCyclePreset() {
+      const prev = getPreviousCycleRange();
+      document.getElementById('paydayStartInput').value = prev.start;
+      document.getElementById('paydayEndInput').value = prev.end;
+      const histSelect = document.getElementById('paydayHistorySelect');
+      if (histSelect) histSelect.value = '';
+      renderPaydaySummary();
+      showToast(`แสดงงวดที่แล้ว: ${formatThaiShortDate(prev.start)} - ${formatThaiShortDate(prev.end)}`);
+    }
+
+    function onSelectArchivedCycle() {
+      const val = document.getElementById('paydayHistorySelect')?.value;
+      if (!val) return;
+      const parts = val.split('|');
+      if (parts.length !== 2) return;
+      document.getElementById('paydayStartInput').value = parts[0];
+      document.getElementById('paydayEndInput').value = parts[1];
+      renderPaydaySummary();
+      showToast(`แสดงงวด: ${formatThaiShortDate(parts[0])} - ${formatThaiShortDate(parts[1])}`);
+    }
+
     function applyPaydayPreset(preset) {
       const now = new Date();
       let start, end;
 
-      if (preset === '25to24') {
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 25);
-        end = new Date(now.getFullYear(), now.getMonth(), 24);
-      } else if (preset === 'calendarMonth') {
+      if (preset === 'calendarMonth') {
         start = new Date(now.getFullYear(), now.getMonth(), 1);
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       } else if (preset === 'last30') {
@@ -1845,7 +2499,175 @@
 
       document.getElementById('paydayStartInput').value = toLocalDateStr(start);
       document.getElementById('paydayEndInput').value = toLocalDateStr(end);
+      const histSelect = document.getElementById('paydayHistorySelect');
+      if (histSelect) histSelect.value = '';
       renderPaydaySummary();
+    }
+
+    // --- START NEW CYCLE MODAL HANDLERS ---
+    function openNewCycleModal() {
+      if (!currentUser) return;
+
+      // Calculate current closing cycle stats
+      let oldInc = 0;
+      let oldExp = 0;
+      userTransactions.forEach(t => {
+        const d = t.date || '';
+        if (d >= savedPaydayStart && d <= savedPaydayEnd) {
+          const val = parseFloat(t.amount) || 0;
+          if (t.type === 'income') oldInc += val;
+          else oldExp += val;
+        }
+      });
+      modalOldCycleBalance = oldInc - oldExp;
+
+      document.getElementById('modalOldCycleRange').innerText =
+        `${formatThaiShortDate(savedPaydayStart)} - ${formatThaiShortDate(savedPaydayEnd)}`;
+      document.getElementById('modalOldIncome').innerText = formatCurrency(oldInc);
+      document.getElementById('modalOldExpense').innerText = formatCurrency(oldExp);
+      document.getElementById('modalOldBalance').innerText = formatCurrency(modalOldCycleBalance);
+      document.getElementById('modalOldBalance').className = modalOldCycleBalance < 0 ? 'text-rose-600' : 'text-slate-800';
+
+      // Default new cycle dates: today -> 1 month ahead minus 1 day
+      const todayStr = getTodayStr();
+      document.getElementById('newCycleStartInput').value = todayStr;
+      document.getElementById('newCycleEndInput').value = getOneMonthCycleEnd(todayStr);
+
+      // Update carry-over description & availability
+      const carryDesc = document.getElementById('modalCarryDesc');
+      const optCardCarry = document.getElementById('optCardCarry');
+      if (modalOldCycleBalance > 0) {
+        carryDesc.innerText = `สร้างรายการรายรับ "ยกยอดจากงวดก่อน" จำนวน ${formatCurrency(modalOldCycleBalance)} ในวันเริ่มงวดใหม่อัตโนมัติ`;
+        optCardCarry.classList.remove('opacity-50');
+      } else {
+        carryDesc.innerText = 'งวดเดิมไม่มียอดคงเหลือที่เป็นบวก (แนะนำให้เลือกเริ่มใหม่ที่ ฿0.00)';
+        optCardCarry.classList.add('opacity-50');
+      }
+
+      selectNewCycleMode('zero');
+      document.getElementById('newCycleModal').classList.remove('hidden');
+    }
+
+    function closeNewCycleModal() {
+      document.getElementById('newCycleModal').classList.add('hidden');
+    }
+
+    function onNewCycleStartChange() {
+      const startVal = document.getElementById('newCycleStartInput').value;
+      if (startVal) {
+        document.getElementById('newCycleEndInput').value = getOneMonthCycleEnd(startVal);
+      }
+    }
+
+    function selectNewCycleMode(mode) {
+      if (mode === 'carryover' && modalOldCycleBalance <= 0) {
+        showToast('งวดเดิมไม่มียอดคงเหลือที่เป็นบวกสำหรับยกยอด', 'warning');
+        return;
+      }
+      selectedNewCycleMode = mode;
+
+      const cardZero = document.getElementById('optCardZero');
+      const iconZero = document.getElementById('optIconZero');
+      const cardCarry = document.getElementById('optCardCarry');
+      const iconCarry = document.getElementById('optIconCarry');
+
+      if (mode === 'zero') {
+        cardZero.className = 'w-full p-3 rounded-2xl border border-emerald-500 bg-emerald-50/60 text-left flex items-start gap-2.5 tap-action';
+        iconZero.className = 'ph ph-radio-button text-emerald-600 text-base mt-0.5';
+        cardCarry.className = `w-full p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-left flex items-start gap-2.5 tap-action ${modalOldCycleBalance <= 0 ? 'opacity-50' : ''}`;
+        iconCarry.className = 'ph ph-circle text-slate-400 text-base mt-0.5';
+      } else {
+        cardCarry.className = 'w-full p-3 rounded-2xl border border-emerald-500 bg-emerald-50/60 text-left flex items-start gap-2.5 tap-action';
+        iconCarry.className = 'ph ph-radio-button text-emerald-600 text-base mt-0.5';
+        cardZero.className = 'w-full p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-left flex items-start gap-2.5 tap-action';
+        iconZero.className = 'ph ph-circle text-slate-400 text-base mt-0.5';
+      }
+    }
+
+    async function confirmStartNewCycle() {
+      if (!currentUser) return;
+      const newStart = document.getElementById('newCycleStartInput').value;
+      const newEnd = document.getElementById('newCycleEndInput').value;
+
+      if (!newStart || !newEnd) {
+        showToast('กรุณาเลือกวันเริ่มงวดและวันสิ้นสุดงวดใหม่', 'warning');
+        return;
+      }
+      if (newStart > newEnd) {
+        showToast('วันเริ่มงวดใหม่ต้องไม่มากกว่าวันสิ้นสุดงวด', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('btnConfirmNewCycle');
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+
+      try {
+        const oldStart = savedPaydayStart;
+        const oldEnd = savedPaydayEnd;
+
+        // Archive the closing cycle into paydayHistory (newest first, avoid duplicate)
+        const updatedHistory = Array.isArray(paydayHistory) ? [...paydayHistory] : [];
+        if (oldStart && oldEnd && (oldStart !== newStart || oldEnd !== newEnd)) {
+          const alreadyExists = updatedHistory.some(c => c.start === oldStart && c.end === oldEnd);
+          if (!alreadyExists) {
+            updatedHistory.unshift({ start: oldStart, end: oldEnd });
+          }
+        }
+        // Keep up to 24 archived cycles
+        const trimmedHistory = updatedHistory.slice(0, 24);
+
+        // Save new cycle & archived history to Firestore
+        await db.collection('users').doc(currentUser.uid).set({
+          paydayStart: newStart,
+          paydayEnd: newEnd,
+          paydayHistory: trimmedHistory
+        }, { merge: true });
+
+        // If user chose carry-over and has positive balance, create carry-over income transaction
+        if (selectedNewCycleMode === 'carryover' && modalOldCycleBalance > 0) {
+          await db.collection('users').doc(currentUser.uid).collection('transactions').add({
+            type: 'income',
+            amount: Number(modalOldCycleBalance.toFixed(2)),
+            category: 'ยกยอดจากงวดก่อน',
+            icon: '🔄',
+            note: `ยกยอดคงเหลือจากงวด ${formatThaiShortDate(oldStart)} - ${formatThaiShortDate(oldEnd)}`,
+            date: newStart,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+
+        // Update in-memory state & localStorage cache
+        savedPaydayStart = newStart;
+        savedPaydayEnd = newEnd;
+        paydayHistory = trimmedHistory;
+        if (currentUserProfile) {
+          currentUserProfile.paydayStart = newStart;
+          currentUserProfile.paydayEnd = newEnd;
+          currentUserProfile.paydayHistory = trimmedHistory;
+        }
+        setCachedCycle(currentUser.uid, newStart, newEnd, trimmedHistory);
+
+        // Sync pickers & switch dashboard to cycle scope
+        document.getElementById('paydayStartInput').value = newStart;
+        document.getElementById('paydayEndInput').value = newEnd;
+        document.getElementById('historyStartDate').value = newStart;
+        document.getElementById('historyEndDate').value = newEnd;
+
+        setDashboardScope('cycle');
+        updatePaydayCycleUI();
+        updateSummaryCards();
+        renderTransactions();
+        renderPaydaySummary();
+
+        closeNewCycleModal();
+        showToast(`เริ่มงวดใหม่ (${formatThaiShortDate(newStart)} - ${formatThaiShortDate(newEnd)}) เรียบร้อย`);
+      } catch (err) {
+        showToast('เริ่มงวดใหม่ไม่สำเร็จ: ' + err.message, 'warning');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70');
+      }
     }
 
     async function saveCurrentPaydayCycle() {
@@ -1864,34 +2686,44 @@
 
       const btn = document.getElementById('btnSaveCycle');
       btn.disabled = true;
+      btn.classList.add('opacity-70');
 
       try {
-        await db.collection('users').doc(currentUser.uid).update({
-          cycleStartDate: startVal,
-          cycleEndDate: endVal
-        });
+        // Save to Firestore users/{uid} with merge: true
+        await db.collection('users').doc(currentUser.uid).set({
+          paydayStart: startVal,
+          paydayEnd: endVal
+        }, { merge: true });
 
-        activeCycleStart = startVal;
-        activeCycleEnd = endVal;
+        // Update localStorage cache & memory state immediately
+        savedPaydayStart = startVal;
+        savedPaydayEnd = endVal;
         if (currentUserProfile) {
-          currentUserProfile.cycleStartDate = startVal;
-          currentUserProfile.cycleEndDate = endVal;
+          currentUserProfile.paydayStart = startVal;
+          currentUserProfile.paydayEnd = endVal;
         }
+        setCachedCycle(currentUser.uid, startVal, endVal);
 
-        updateCycleLabels();
-        updateUserSummary();
-        renderUserHistory();
+        // Immediately sync all UI elements across the entire app
+        updatePaydayCycleUI();
+        updateSummaryCards();
+        renderTransactions();
+        renderPaydaySummary();
+
         showToast(`บันทึกงวดปัจจุบัน (${formatThaiShortDate(startVal)} - ${formatThaiShortDate(endVal)}) เรียบร้อย`);
       } catch (err) {
         showToast('บันทึกงวดไม่สำเร็จ: ' + err.message, 'warning');
       } finally {
         btn.disabled = false;
+        btn.classList.remove('opacity-70');
       }
     }
 
     function renderPaydaySummary() {
-      const startVal = document.getElementById('paydayStartInput').value || activeCycleStart;
-      const endVal = document.getElementById('paydayEndInput').value || activeCycleEnd;
+      const startVal = document.getElementById('paydayStartInput').value || savedPaydayStart;
+      const endVal = document.getElementById('paydayEndInput').value || savedPaydayEnd;
+
+      if (!startVal || !endVal) return;
 
       document.getElementById('paydayPeriodLabel').innerText =
         `${formatThaiShortDate(startVal)} - ${formatThaiShortDate(endVal)}`;
@@ -1933,20 +2765,17 @@
       const totalDays = diffDaysInclusive(startVal, endVal);
       const todayStr = getTodayStr();
 
-      // Calculate remaining days if end date is in the future
       let daysInfoText = `รวม ${totalDays} วัน`;
       if (endVal > todayStr) {
-        const remDays = diffDaysInclusive(todayStr, endVal) - 1;
+        const remDays = Math.max(0, diffDaysInclusive(todayStr, endVal) - 1);
         daysInfoText = `รวม ${totalDays} วัน (เหลืออีก ${remDays} วัน)`;
       }
 
-      // Average daily expense across elapsed days within the period (or full period if past)
       let elapsedDays = totalDays;
       if (todayStr >= startVal && todayStr < endVal) {
         elapsedDays = diffDaysInclusive(startVal, todayStr);
       }
       const avgDaily = totalExp / Math.max(1, elapsedDays);
-
       const saveRate = totalInc > 0 ? Math.round((balance / totalInc) * 100) : 0;
 
       document.getElementById('paydayIncome').innerText = formatCurrency(totalInc);
@@ -1959,7 +2788,10 @@
       document.getElementById('paydayAvgDaily').innerText = formatCurrency(avgDaily);
       document.getElementById('paydayDaysInfo').innerText = daysInfoText;
 
-      // Render Category Breakdown sorted highest to lowest
+      // Update Comparison Strip with previous cycle
+      renderPaydayComparison(startVal, endVal, totalInc, totalExp, balance);
+
+      // Category Expense Breakdown (sorted highest to lowest)
       const breakdownEl = document.getElementById('paydayCategoryBreakdown');
       const breakdownEmpty = document.getElementById('paydayCategoryEmpty');
       breakdownEl.innerHTML = '';
@@ -1994,7 +2826,7 @@
         });
       }
 
-      // Render Transaction List for Cycle
+      // Cycle Transactions List
       const mobileList = document.getElementById('paydayTxCardsMobile');
       const desktopTbody = document.getElementById('paydayTxTableBodyDesktop');
       const emptyTx = document.getElementById('paydayTxEmpty');
@@ -2015,7 +2847,6 @@
         const amtStr = `${isExp ? '-' : '+'}${formatCurrency(amt)}`;
         const amtColor = isExp ? 'text-rose-600' : 'text-emerald-600';
 
-        // Mobile Card
         const card = document.createElement('div');
         card.className = 'p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
         card.innerHTML = `
@@ -2038,7 +2869,6 @@
         `;
         mobileList.appendChild(card);
 
-        // Desktop Row
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/70';
         tr.innerHTML = `
@@ -2052,20 +2882,71 @@
       });
     }
 
+    function renderPaydayComparison(curStart, curEnd, curInc, curExp, curBal) {
+      // Determine which previous cycle to compare against:
+      // If viewing the current saved cycle, compare with getPreviousCycleRange();
+      // If viewing an archived cycle, compare with the next older archived cycle or calculated 1-month prior window.
+      let prevRange;
+      if (curStart === savedPaydayStart && curEnd === savedPaydayEnd) {
+        prevRange = getPreviousCycleRange();
+      } else {
+        const idx = (paydayHistory || []).findIndex(c => c.start === curStart && c.end === curEnd);
+        if (idx >= 0 && paydayHistory[idx + 1]) {
+          prevRange = paydayHistory[idx + 1];
+        } else {
+          prevRange = getPreviousCycleRange(curStart);
+        }
+      }
+
+      let prevInc = 0;
+      let prevExp = 0;
+      userTransactions.forEach(t => {
+        const d = t.date || '';
+        if (d >= prevRange.start && d <= prevRange.end) {
+          const val = parseFloat(t.amount) || 0;
+          if (t.type === 'income') prevInc += val;
+          else prevExp += val;
+        }
+      });
+      const prevBal = prevInc - prevExp;
+
+      document.getElementById('compPrevRange').innerText =
+        `(${formatThaiShortDate(prevRange.start)} - ${formatThaiShortDate(prevRange.end)})`;
+      document.getElementById('compPrevIncome').innerText = formatCurrency(prevInc);
+      document.getElementById('compPrevExpense').innerText = formatCurrency(prevExp);
+      document.getElementById('compPrevBalance').innerText = formatCurrency(prevBal);
+
+      const badge = document.getElementById('compExpenseDiffBadge');
+      const diffExp = curExp - prevExp;
+      if (prevExp === 0 && curExp === 0) {
+        badge.innerText = 'ยังไม่มีข้อมูลเปรียบเทียบ';
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200';
+      } else if (diffExp > 0) {
+        badge.innerText = `จ่ายเพิ่ม +${formatCurrency(diffExp)}`;
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200';
+      } else if (diffExp < 0) {
+        badge.innerText = `ประหยัดขึ้น ${formatCurrency(Math.abs(diffExp))}`;
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+      } else {
+        badge.innerText = 'รายจ่ายเท่ากับงวดก่อน';
+        badge.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+      }
+    }
+
     function exportPaydayCycleCSV() {
       if (paydayCycleTransactions.length === 0) {
         showToast('ไม่มีรายการในช่วงงวดที่เลือก', 'warning');
         return;
       }
-      const startVal = document.getElementById('paydayStartInput').value || activeCycleStart;
-      const endVal = document.getElementById('paydayEndInput').value || activeCycleEnd;
+      const startVal = document.getElementById('paydayStartInput').value || savedPaydayStart;
+      const endVal = document.getElementById('paydayEndInput').value || savedPaydayEnd;
       const csv = buildTransactionsCSV(paydayCycleTransactions);
       downloadCsv(csv, `money_diary_cycle_${startVal}_to_${endVal}.csv`);
       showToast('ส่งออก Excel (CSV) เฉพาะงวดนี้สำเร็จ');
     }
 
     // =========================================================================
-    // 12. USER PIN SETTINGS
+    // 13. USER PIN SETTINGS
     // =========================================================================
     function updateCurrentPinDisplay() {
       const pinDisp = document.getElementById('currentPinDisplay');
@@ -2092,7 +2973,7 @@
       }
 
       try {
-        await db.collection('users').doc(currentUser.uid).update({ pin: newPin });
+        await db.collection('users').doc(currentUser.uid).set({ pin: newPin }, { merge: true });
         if (currentUserProfile) currentUserProfile.pin = newPin;
         updateCurrentPinDisplay();
         input.value = '';
@@ -2103,127 +2984,248 @@
     }
 
     // =========================================================================
-    // 13. ADMIN PANEL: MEMBERS, PIN MANAGEMENT, INSPECTION & DELETE
+    // 14. ADMIN PANEL: MEMBERS, PIN MANAGEMENT, LEDGER INSPECTION & DELETE
     // =========================================================================
+    let adminUsersMap = {};
+    let currentInspectProfile = null;
+    let deferredInstallPrompt = null;
+    let toastTimer = null;
+
     function listenToAdminUsers() {
       if (unsubscribeAdminUsers) unsubscribeAdminUsers();
       unsubscribeAdminUsers = db.collection('users').onSnapshot(snapshot => {
         const mobileContainer = document.getElementById('adminMembersCardsMobile');
         const desktopTbody = document.getElementById('adminMembersTableDesktop');
+        if (!mobileContainer || !desktopTbody) return;
+
         mobileContainer.innerHTML = '';
         desktopTbody.innerHTML = '';
+        adminUsersMap = {};
 
         let total = 0;
         let active = 0;
         let suspended = 0;
 
+        const users = [];
         snapshot.forEach(doc => {
-          total++;
           const u = { id: doc.id, ...doc.data() };
+          users.push(u);
+          adminUsersMap[doc.id] = u;
+        });
+
+        // Sort admins first, then by displayName
+        users.sort((a, b) => {
+          if (a.role === 'admin' && b.role !== 'admin') return -1;
+          if (a.role !== 'admin' && b.role === 'admin') return 1;
+          return (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '');
+        });
+
+        users.forEach(u => {
+          total++;
           const isSuspended = u.status === 'suspended';
-          const isAdmin = u.role === 'admin';
-          const isSelf = currentUser && doc.id === currentUser.uid;
           if (isSuspended) suspended++; else active++;
 
-          let lastLoginStr = '-';
-          if (u.lastLoginAt) {
-            try {
-              lastLoginStr = new Date(u.lastLoginAt.toDate()).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-            } catch (e) {
-              lastLoginStr = '-';
-            }
-          }
+          const uid = u.id;
+          const isSelf = currentUser && uid === currentUser.uid;
+          const isAdmin = u.role === 'admin';
+          const name = u.displayName || (u.email ? u.email.split('@')[0] : 'สมาชิก');
+          const email = u.email || '-';
+          const pin = u.pin ? String(u.pin) : '1234';
+          const lastLogin = formatFirestoreTimestamp(u.lastLoginAt);
 
-          const safeName = escapeHtml(u.displayName || u.email || '-');
-          const safeEmail = escapeHtml(u.email || '-');
-          const userPin = escapeHtml(u.pin || '1234');
+          const roleBadge = isAdmin
+            ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Admin</span>'
+            : '<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">User</span>';
 
-          // Mobile Card
+          const statusBadge = isSuspended
+            ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">ถูกระงับ</span>'
+            : '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">ปกติ</span>';
+
+          const selfTag = isSelf ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">คุณ</span>' : '';
+
+          // Mobile Member Card
           const card = document.createElement('div');
-          card.className = 'p-3 bg-white border border-slate-200/80 rounded-2xl space-y-2.5';
+          card.className = 'p-3.5 bg-white border border-slate-200/80 rounded-2xl space-y-2.5';
           card.innerHTML = `
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
-                <div class="text-xs text-slate-800 flex items-center gap-1.5 flex-wrap">
-                  <span class="truncate">${safeName}</span>
-                  ${isSelf ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">คุณ</span>' : ''}
-                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-100 text-slate-600'}">${isAdmin ? 'Admin' : 'User'}</span>
-                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isSuspended ? 'ถูกระงับ' : 'ปกติ'}</span>
-                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600 border border-slate-200">PIN: ${userPin}</span>
+                <div class="flex items-center flex-wrap gap-1.5">
+                  <span class="text-xs text-slate-800 truncate">${escapeHtml(name)}</span>
+                  ${selfTag}
+                  ${roleBadge}
+                  ${statusBadge}
                 </div>
-                <p class="text-[10px] text-slate-400 font-mono truncate mt-0.5">${safeEmail}</p>
+                <p class="text-[11px] text-slate-400 font-mono truncate mt-0.5">${escapeHtml(email)}</p>
               </div>
-              <div class="text-right text-[10px] text-slate-400 shrink-0">
-                <span>${u.loginCount || 1} ครั้ง</span>
-                <span class="block">${lastLoginStr}</span>
+              <div class="text-right shrink-0">
+                <span class="text-[10px] text-slate-400 block">PIN</span>
+                <span class="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg">${escapeHtml(pin)}</span>
               </div>
             </div>
-
-            <div class="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 overflow-x-auto text-[11px]">
-              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${safeName}', '${safeEmail}')" class="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 tap-action flex items-center justify-center gap-1 whitespace-nowrap">
-                <i class="ph ph-receipt"></i><span>ดูรายการ</span>
-              </button>
-              <button type="button" onclick="openAdminPinModal('${u.id}', '${safeName}', '${userPin}')" class="py-1.5 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 tap-action whitespace-nowrap flex items-center gap-1">
-                <i class="ph ph-key"></i><span>แก้ PIN</span>
-              </button>
-              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 tap-action whitespace-nowrap ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
-                ${isAdmin ? 'เป็น User' : 'เป็น Admin'}
-              </button>
-              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="py-1.5 px-2 rounded-xl border tap-action whitespace-nowrap ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'} ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
-                ${isSuspended ? 'ปลดบล็อก' : 'ระงับ'}
-              </button>
-              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${safeName}')" class="py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 tap-action whitespace-nowrap ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>
-                <i class="ph ph-trash"></i>
-              </button>
+            <div class="text-[10px] text-slate-400">เข้าล่าสุด: ${escapeHtml(lastLogin)}</div>
+            <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
+              <button type="button" onclick="inspectMemberLedger('${uid}')" class="px-2.5 py-1.5 text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl tap-action">ดูรายการ</button>
+              <button type="button" onclick="openAdminPinModal('${uid}')" class="px-2.5 py-1.5 text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl tap-action">แก้ PIN</button>
+              <button type="button" onclick="toggleUserRole('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2.5 py-1.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">สลับสิทธิ์</button>
+              <button type="button" onclick="toggleUserStatus('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2.5 py-1.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">${isSuspended ? 'เปิดใช้' : 'ระงับ'}</button>
+              <button type="button" onclick="deleteUserAccount('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2.5 py-1.5 text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">ลบสมาชิก</button>
             </div>
           `;
           mobileContainer.appendChild(card);
 
-          // Desktop Table Row
+          // Desktop / iPad Table Row
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-slate-50/70 transition-colors';
           tr.innerHTML = `
             <td class="p-3">
-              <div class="text-slate-800 flex items-center gap-1.5">
-                <span>${safeName}</span>
-                ${isSelf ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">คุณ</span>' : ''}
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-800">${escapeHtml(name)}</span>
+                ${selfTag}
               </div>
-              <div class="text-[11px] text-slate-400 font-mono">${safeEmail}</div>
+              <div class="text-[11px] text-slate-400 font-mono">${escapeHtml(email)}</div>
             </td>
-            <td class="p-3">
-              <span class="px-2 py-0.5 rounded-full text-[10px] ${isAdmin ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600'}">${isAdmin ? 'Admin' : 'User'}</span>
-            </td>
-            <td class="p-3">
-              <span class="px-2 py-0.5 rounded-full text-[10px] ${isSuspended ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isSuspended ? 'ถูกระงับ' : 'ปกติ'}</span>
-            </td>
-            <td class="p-3 font-mono text-slate-600">${userPin}</td>
-            <td class="p-3 text-slate-400 whitespace-nowrap">
-              <div>${lastLoginStr}</div>
-              <div class="text-[10px]">${u.loginCount || 1} ครั้ง</div>
-            </td>
-            <td class="p-3 text-right whitespace-nowrap space-x-1">
-              <button type="button" onclick="inspectMemberTransactions('${u.id}', '${safeName}', '${safeEmail}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 text-[11px] tap-action">ดูรายการ</button>
-              <button type="button" onclick="openAdminPinModal('${u.id}', '${safeName}', '${userPin}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 text-[11px] tap-action">แก้ PIN</button>
-              <button type="button" onclick="toggleAdminRole('${u.id}', '${u.role}')" class="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[11px] tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>เปลี่ยนสิทธิ์</button>
-              <button type="button" onclick="toggleAdminStatus('${u.id}', '${u.status}')" class="px-2 py-1 rounded-lg border text-[11px] tap-action ${isSuspended ? 'border-emerald-200 text-emerald-600 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50'} ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>${isSuspended ? 'ปลดบล็อก' : 'ระงับ'}</button>
-              <button type="button" onclick="deleteUserByAdmin('${u.id}', '${safeName}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 text-[11px] tap-action ${isSelf ? 'opacity-30 cursor-not-allowed' : ''}" ${isSelf ? 'disabled' : ''}>ลบสมาชิก</button>
+            <td class="p-3">${roleBadge}</td>
+            <td class="p-3">${statusBadge}</td>
+            <td class="p-3 font-mono text-slate-700">${escapeHtml(pin)}</td>
+            <td class="p-3 text-slate-400 whitespace-nowrap">${escapeHtml(lastLogin)}</td>
+            <td class="p-3 text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1">
+                <button type="button" onclick="inspectMemberLedger('${uid}')" class="px-2 py-1 text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg tap-action">ดูรายการ</button>
+                <button type="button" onclick="openAdminPinModal('${uid}')" class="px-2 py-1 text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg tap-action">แก้ PIN</button>
+                <button type="button" onclick="toggleUserRole('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">สิทธิ์</button>
+                <button type="button" onclick="toggleUserStatus('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">${isSuspended ? 'เปิดใช้' : 'ระงับ'}</button>
+                <button type="button" onclick="deleteUserAccount('${uid}')" ${isSelf ? 'disabled' : ''} class="px-2 py-1 text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg tap-action ${isSelf ? 'opacity-40 cursor-not-allowed' : ''}">ลบ</button>
+              </div>
             </td>
           `;
           desktopTbody.appendChild(tr);
         });
 
-        document.getElementById('statTotalUsers').innerText = total;
-        document.getElementById('statActiveUsers').innerText = active;
-        document.getElementById('statSuspendedUsers').innerText = suspended;
+        const statTotal = document.getElementById('statTotalUsers');
+        const statActive = document.getElementById('statActiveUsers');
+        const statSusp = document.getElementById('statSuspendedUsers');
+        if (statTotal) statTotal.innerText = total;
+        if (statActive) statActive.innerText = active;
+        if (statSusp) statSusp.innerText = suspended;
       }, err => {
-        console.error("Admin user listener error:", err);
+        console.error("Admin users listener error:", err);
       });
     }
 
-    function openAdminPinModal(uid, name, currentPin) {
-      adminEditingUser = { uid, name };
-      document.getElementById('adminModalUserName').innerText = name;
-      document.getElementById('adminModalPinInput').value = currentPin;
+    async function inspectMemberLedger(uid) {
+      const target = adminUsersMap[uid];
+      if (!target) return;
+
+      currentInspectUid = uid;
+      currentInspectProfile = target;
+
+      const box = document.getElementById('adminInspectLedgerBox');
+      const nameEl = document.getElementById('inspectTargetName');
+      const emailEl = document.getElementById('inspectTargetEmail');
+      const listEl = document.getElementById('inspectTxListContainer');
+      const emptyEl = document.getElementById('inspectTxEmpty');
+
+      nameEl.innerText = target.displayName || (target.email ? target.email.split('@')[0] : 'สมาชิก');
+      emailEl.innerText = target.email || '-';
+      box.classList.remove('hidden');
+      listEl.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">กำลังโหลดรายการ...</div>';
+      emptyEl.classList.add('hidden');
+
+      try {
+        const snap = await db.collection('users').doc(uid).collection('transactions')
+          .orderBy('date', 'desc')
+          .get();
+
+        inspectTransactions = [];
+        let inc = 0;
+        let exp = 0;
+        let todayExp = 0;
+        const todayStr = getTodayStr();
+
+        snap.forEach(doc => {
+          const item = { id: doc.id, ...doc.data() };
+          inspectTransactions.push(item);
+          const val = parseFloat(item.amount) || 0;
+          if (item.type === 'income') {
+            inc += val;
+          } else {
+            exp += val;
+            if (item.date === todayStr) todayExp += val;
+          }
+        });
+
+        document.getElementById('inspectBalance').innerText = formatCurrency(inc - exp);
+        document.getElementById('inspectIncome').innerText = formatCurrency(inc);
+        document.getElementById('inspectExpense').innerText = formatCurrency(exp);
+        document.getElementById('inspectTodayExpense').innerText = formatCurrency(todayExp);
+
+        listEl.innerHTML = '';
+        if (inspectTransactions.length === 0) {
+          emptyEl.classList.remove('hidden');
+        } else {
+          emptyEl.classList.add('hidden');
+          inspectTransactions.forEach(item => {
+            const isExp = item.type === 'expense';
+            const amt = parseFloat(item.amount) || 0;
+            const amtStr = `${isExp ? '-' : '+'}${formatCurrency(amt)}`;
+            const amtColor = isExp ? 'text-rose-600' : 'text-emerald-600';
+
+            const row = document.createElement('div');
+            row.className = 'p-3 bg-slate-50/70 border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
+            row.innerHTML = `
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-lg shrink-0 ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
+                  ${item.icon || (isExp ? '🍲' : '💵')}
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'จ่าย' : 'รับ'}</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-xs whitespace-nowrap ${amtColor}">${amtStr}</div>
+                <span class="text-[10px] text-slate-400 block">${formatThaiShortDate(item.date)}</span>
+              </div>
+            `;
+            listEl.appendChild(row);
+          });
+        }
+
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        listEl.innerHTML = '';
+        showToast('โหลดรายการสมาชิกไม่สำเร็จ: ' + err.message, 'warning');
+      }
+    }
+
+    function closeAdminInspection() {
+      document.getElementById('adminInspectLedgerBox').classList.add('hidden');
+      currentInspectUid = null;
+      currentInspectProfile = null;
+      inspectTransactions = [];
+    }
+
+    function exportInspectCSV() {
+      if (!inspectTransactions || inspectTransactions.length === 0) {
+        showToast('สมาชิกนี้ยังไม่มีรายการให้ส่งออก', 'warning');
+        return;
+      }
+      const csv = buildTransactionsCSV(inspectTransactions);
+      const name = (currentInspectProfile?.displayName || 'member').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+      downloadCsv(csv, `money_diary_member_${name}_${getTodayStr()}.csv`);
+      showToast('ส่งออก Excel (CSV) ของสมาชิกเรียบร้อย');
+    }
+
+    function openAdminPinModal(uid) {
+      const target = adminUsersMap[uid];
+      if (!target) return;
+      adminEditingUser = { uid: uid, ...target };
+      document.getElementById('adminModalUserName').innerText =
+        `${target.displayName || 'สมาชิก'} (${target.email || '-'})`;
+      document.getElementById('adminModalPinInput').value = target.pin ? String(target.pin) : '1234';
       document.getElementById('adminPinModal').classList.remove('hidden');
       document.getElementById('adminModalPinInput').focus();
     }
@@ -2235,196 +3237,263 @@
 
     async function saveAdminMemberPin() {
       if (!adminEditingUser) return;
-      const input = document.getElementById('adminModalPinInput');
-      const newPin = input.value.trim();
-
+      const newPin = document.getElementById('adminModalPinInput').value.trim();
       if (!/^\d{4,6}$/.test(newPin)) {
-        showToast('กรุณาระบุ PIN เป็นตัวเลข 4 ถึง 6 หลัก', 'warning');
-        input.focus();
+        showToast('กรุณาระบุรหัส PIN เป็นตัวเลข 4 ถึง 6 หลัก', 'warning');
         return;
       }
 
       try {
-        await db.collection('users').doc(adminEditingUser.uid).update({ pin: newPin });
+        await db.collection('users').doc(adminEditingUser.uid).set({ pin: newPin }, { merge: true });
         if (currentUser && adminEditingUser.uid === currentUser.uid && currentUserProfile) {
           currentUserProfile.pin = newPin;
           updateCurrentPinDisplay();
         }
-        showToast(`อัปเดต PIN ของ ${adminEditingUser.name} เรียบร้อยแล้ว`);
         closeAdminPinModal();
+        showToast('อัปเดตรหัส PIN ของสมาชิกเรียบร้อย');
       } catch (err) {
         showToast('อัปเดต PIN ไม่สำเร็จ: ' + err.message, 'warning');
       }
     }
 
-    async function toggleAdminRole(uid, currentRole) {
-      if (uid === currentUser.uid) {
-        showToast('ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้', 'warning');
-        return;
-      }
-      const newRole = currentRole === 'admin' ? 'user' : 'admin';
-      try {
-        await db.collection('users').doc(uid).update({ role: newRole });
-        showToast(`เปลี่ยนสิทธิ์เป็น ${newRole} สำเร็จ`);
-      } catch (err) {
-        showToast('เปลี่ยนสิทธิ์ไม่สำเร็จ: ' + err.message, 'warning');
-      }
+    function toggleUserRole(uid) {
+      if (currentUser && uid === currentUser.uid) return;
+      const target = adminUsersMap[uid];
+      if (!target) return;
+      const nextRole = target.role === 'admin' ? 'user' : 'admin';
+      const name = target.displayName || target.email || 'สมาชิก';
+
+      showAppDialog(
+        'ยืนยันการเปลี่ยนสิทธิ์',
+        `ต้องการเปลี่ยนสิทธิ์ของ "${name}" เป็น ${nextRole === 'admin' ? 'Admin (ผู้ดูแล)' : 'User (สมาชิกทั่วไป)'} ใช่หรือไม่?`,
+        async () => {
+          try {
+            await db.collection('users').doc(uid).set({ role: nextRole }, { merge: true });
+            showToast('อัปเดตสิทธิ์เรียบร้อย');
+          } catch (err) {
+            showToast('อัปเดตสิทธิ์ไม่สำเร็จ: ' + err.message, 'warning');
+          }
+        }
+      );
     }
 
-    async function toggleAdminStatus(uid, currentStatus) {
-      if (uid === currentUser.uid) {
-        showToast('ไม่สามารถระงับบัญชีของตัวเองได้', 'warning');
-        return;
-      }
-      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
-      try {
-        await db.collection('users').doc(uid).update({ status: newStatus });
-        showToast(newStatus === 'active' ? 'ปลดระงับบัญชีเรียบร้อย' : 'ระงับบัญชีเรียบร้อย');
-      } catch (err) {
-        showToast('เปลี่ยนสถานะไม่สำเร็จ: ' + err.message, 'warning');
-      }
+    function toggleUserStatus(uid) {
+      if (currentUser && uid === currentUser.uid) return;
+      const target = adminUsersMap[uid];
+      if (!target) return;
+      const nextStatus = target.status === 'suspended' ? 'active' : 'suspended';
+      const name = target.displayName || target.email || 'สมาชิก';
+
+      showAppDialog(
+        nextStatus === 'suspended' ? 'ยืนยันการระงับบัญชี' : 'ยืนยันการเปิดใช้งานบัญชี',
+        `ต้องการ${nextStatus === 'suspended' ? 'ระงับการใช้งาน' : 'เปิดการใช้งาน'}บัญชี "${name}" ใช่หรือไม่?`,
+        async () => {
+          try {
+            await db.collection('users').doc(uid).set({ status: nextStatus }, { merge: true });
+            showToast(nextStatus === 'suspended' ? 'ระงับบัญชีเรียบร้อย' : 'เปิดใช้งานบัญชีเรียบร้อย');
+          } catch (err) {
+            showToast('อัปเดตสถานะไม่สำเร็จ: ' + err.message, 'warning');
+          }
+        }
+      );
     }
 
-    function deleteUserByAdmin(uid, name) {
-      if (uid === currentUser.uid) {
+    function deleteUserAccount(uid) {
+      if (currentUser && uid === currentUser.uid) {
         showToast('ไม่สามารถลบบัญชีของตัวเองได้', 'warning');
         return;
       }
+      const target = adminUsersMap[uid];
+      if (!target) return;
+      const name = target.displayName || target.email || 'สมาชิก';
 
       showAppDialog(
         'ยืนยันการลบสมาชิกถาวร',
-        `ต้องการลบสมาชิก "${name}" ออกจากระบบใช่หรือไม่? ข้อมูลโปรไฟล์และประวัติรายรับ-รายจ่ายทั้งหมดจะถูกลบออกจากฐานข้อมูลอย่างถาวร`,
+        `คุณกำลังจะลบสมาชิก "${name}" พร้อมประวัติรายรับ-รายจ่ายทั้งหมดของสมาชิกนี้ออกจากระบบถาวร ยืนยันหรือไม่?`,
         async () => {
           try {
-            showToast('กำลังลบข้อมูลสมาชิกและรายการทั้งหมด...');
+            // Batch-delete all transactions in /users/{uid}/transactions
+            const txRef = db.collection('users').doc(uid).collection('transactions');
+            const txSnap = await txRef.get();
+            const docs = txSnap.docs;
 
-            const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
-            const batch = db.batch();
-            txSnap.forEach(doc => {
-              batch.delete(doc.ref);
-            });
-            await batch.commit();
+            for (let i = 0; i < docs.length; i += 450) {
+              const batch = db.batch();
+              docs.slice(i, i + 450).forEach(d => batch.delete(d.ref));
+              await batch.commit();
+            }
+
+            // Delete the user profile document
             await db.collection('users').doc(uid).delete();
 
             if (currentInspectUid === uid) {
               closeAdminInspection();
             }
-            showToast(`ลบสมาชิก "${name}" เรียบร้อยแล้ว`);
+            showToast(`ลบสมาชิก "${name}" และรายการทั้งหมดเรียบร้อย`);
           } catch (err) {
-            console.error("Delete user error:", err);
             showToast('ลบสมาชิกไม่สำเร็จ: ' + err.message, 'warning');
           }
         }
       );
     }
 
-    async function inspectMemberTransactions(uid, name, email) {
-      currentInspectUid = uid;
-      const box = document.getElementById('adminInspectLedgerBox');
-      const container = document.getElementById('inspectTxListContainer');
-      const emptyEl = document.getElementById('inspectTxEmpty');
+    // =========================================================================
+    // 15. PWA APP ICON GENERATOR & INSTALL HANDLER
+    // =========================================================================
+    function renderAppIconDataUrl(size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const s = size / 128;
 
-      document.getElementById('inspectTargetName').innerText = name;
-      document.getElementById('inspectTargetEmail').innerText = email;
-      box.classList.remove('hidden');
+      // Emerald gradient background
+      const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+      bgGrad.addColorStop(0, '#10b981');
+      bgGrad.addColorStop(1, '#047857');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, size, size);
 
-      container.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">กำลังดึงข้อมูลรายการ...</div>';
-      emptyEl.classList.add('hidden');
-      box.scrollIntoView({ behavior: 'smooth' });
+      // Soft top sheen
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size, 52 * s);
+      ctx.quadraticCurveTo(size / 2, 34 * s, 0, 52 * s);
+      ctx.closePath();
+      ctx.fill();
 
+      // Helper for rounded rect
+      function drawRoundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      // White wallet body
+      ctx.fillStyle = '#ffffff';
+      drawRoundRect(24 * s, 44 * s, 76 * s, 54 * s, 14 * s);
+      ctx.fill();
+
+      // Wallet clasp
+      ctx.fillStyle = '#d1fae5';
+      drawRoundRect(68 * s, 60 * s, 36 * s, 22 * s, 11 * s);
+      ctx.fill();
+
+      // Clasp button dot
+      ctx.fillStyle = '#047857';
+      ctx.beginPath();
+      ctx.arc(80 * s, 71 * s, 5 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gold Baht coin
+      const coinGrad = ctx.createLinearGradient(72 * s, 20 * s, 108 * s, 56 * s);
+      coinGrad.addColorStop(0, '#fde047');
+      coinGrad.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = coinGrad;
+      ctx.beginPath();
+      ctx.arc(90 * s, 38 * s, 18 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 4 * s;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      // Baht symbol
+      ctx.fillStyle = '#78350f';
+      ctx.font = `${Math.round(20 * s)}px Prompt, Sarabun, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('฿', 90 * s, 39.5 * s);
+
+      return canvas.toDataURL('image/png');
+    }
+
+    function initPwaAppIcon() {
       try {
-        const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('date', 'desc').get();
-        inspectTransactions = [];
-        let income = 0;
-        let expense = 0;
-        let todayExpense = 0;
-        const todayStr = getTodayStr();
+        const icon512 = renderAppIconDataUrl(512);
+        const icon192 = renderAppIconDataUrl(192);
 
-        snap.forEach(doc => {
-          const item = { id: doc.id, ...doc.data() };
-          inspectTransactions.push(item);
-          const val = parseFloat(item.amount) || 0;
-          if (item.type === 'income') {
-            income += val;
-          } else {
-            expense += val;
-            if (item.date === todayStr) todayExpense += val;
-          }
-        });
+        const manifest = {
+          name: 'Money Diary - บันทึกรายรับ-รายจ่าย',
+          short_name: 'Money Diary',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#f8fafc',
+          theme_color: '#047857',
+          icons: [
+            { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        };
 
-        document.getElementById('inspectBalance').innerText = formatCurrency(income - expense);
-        document.getElementById('inspectIncome').innerText = formatCurrency(income);
-        document.getElementById('inspectExpense').innerText = formatCurrency(expense);
-        document.getElementById('inspectTodayExpense').innerText = formatCurrency(todayExpense);
-
-        container.innerHTML = '';
-        if (inspectTransactions.length === 0) {
-          emptyEl.classList.remove('hidden');
-          return;
-        }
-
-        inspectTransactions.forEach(item => {
-          const isExp = item.type === 'expense';
-          const amt = parseFloat(item.amount) || 0;
-          const card = document.createElement('div');
-          card.className = 'p-3 bg-white border border-slate-100 rounded-2xl flex items-center justify-between gap-3';
-          card.innerHTML = `
-            <div class="flex items-center gap-2.5 min-w-0">
-              <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-lg shrink-0 ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">
-                ${item.icon || (isExp ? '🍲' : '💵')}
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs text-slate-800 truncate">${escapeHtml(item.category)}</span>
-                  <span class="text-[9px] px-1.5 py-0.5 rounded-full ${isExp ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}">${isExp ? 'จ่าย' : 'รับ'}</span>
-                </div>
-                <p class="text-[11px] text-slate-400 truncate mt-0.5">${escapeHtml(item.note) || item.date || '-'}</p>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <div class="text-xs whitespace-nowrap ${isExp ? 'text-rose-600' : 'text-emerald-600'}">${isExp ? '-' : '+'}${formatCurrency(amt)}</div>
-              <span class="text-[10px] text-slate-400 block">${formatThaiShortDate(item.date)}</span>
-            </div>
-          `;
-          container.appendChild(card);
-        });
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.getElementById('pwaManifestLink');
+        if (manifestLink) manifestLink.setAttribute('href', manifestUrl);
       } catch (err) {
-        container.innerHTML = `<div class="py-6 text-center text-xs text-rose-500">เกิดข้อผิดพลาด: ${err.message}</div>`;
+        console.warn('PWA icon init skipped:', err);
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+      });
+    }
+
+    async function handleInstallPwa() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        if (outcome === 'accepted') {
+          showToast('กำลังติดตั้งแอป Money Diary ลงหน้าจอหลัก');
+        }
+      } else {
+        showToast('บน iPhone/iPad กดปุ่มแชร์ (Share) > "เพิ่มไปยังหน้าจอโฮม" | บน Android กดเมนู ⋮ > "เพิ่มลงหน้าจอหลัก"');
       }
     }
 
-    function closeAdminInspection() {
-      document.getElementById('adminInspectLedgerBox').classList.add('hidden');
-      currentInspectUid = null;
-      inspectTransactions = [];
-    }
-
-    function exportInspectCSV() {
-      if (inspectTransactions.length === 0) {
-        showToast('ไม่มีรายการให้ส่งออก', 'warning');
-        return;
+    function downloadAppIconPng() {
+      try {
+        const dataUrl = renderAppIconDataUrl(180);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'apple-touch-icon.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('ดาวน์โหลดไฟล์ apple-touch-icon.png เรียบร้อย');
+      } catch (err) {
+        showToast('ดาวน์โหลดไอคอนไม่สำเร็จ: ' + err.message, 'warning');
       }
-      const csv = buildTransactionsCSV(inspectTransactions);
-      const name = (document.getElementById('inspectTargetName').innerText || 'member').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
-      downloadCsv(csv, `ledger_${name}_${getTodayStr()}.csv`);
-      showToast('ส่งออก CSV ของสมาชิกเรียบร้อย');
     }
 
     // =========================================================================
-    // 14. UTILITIES: CSV BUILDER, DIALOG MODAL, TOAST, ESCAPE HTML
+    // 16. SHARED UTILITIES (CSV, DIALOG, TOAST, ESCAPE, TIMESTAMP)
     // =========================================================================
     function buildTransactionsCSV(list) {
-      let csv = '\uFEFFวันที่,ประเภท,หมวดหมู่,โน้ต,จำนวนเงิน(บาท)\n';
-      list.forEach(t => {
-        const typeText = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
-        const safeNote = (t.note || '').replace(/"/g, '""');
-        csv += `"${t.date || ''}","${typeText}","${t.category || ''}","${safeNote}","${t.amount || 0}"\n`;
+      const headers = ['วันที่', 'ประเภท', 'หมวดหมู่', 'โน้ต', 'จำนวนเงิน'];
+      const rows = list.map(t => {
+        const typeLabel = t.type === 'income' ? 'รายรับ' : 'รายจ่าย';
+        const noteSafe = String(t.note || '').replace(/"/g, '""');
+        const catSafe = String(t.category || '').replace(/"/g, '""');
+        const amt = (parseFloat(t.amount) || 0).toFixed(2);
+        return `"${t.date || ''}","${typeLabel}","${catSafe}","${noteSafe}",${amt}`;
       });
-      return csv;
+      return '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
     }
 
-    function downloadCsv(content, filename) {
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    function downloadCsv(csvContent, filename) {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -2432,34 +3501,21 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    let toastTimer = null;
-    function showToast(msg, type = 'success') {
-      const bar = document.getElementById('toastNotification');
-      const text = document.getElementById('toastMessage');
-      const icon = document.getElementById('toastIcon');
-
-      text.innerText = msg;
-      icon.className = type === 'warning'
-        ? 'ph ph-warning-circle text-amber-400 text-base'
-        : 'ph ph-check-circle text-emerald-400 text-base';
-
-      bar.classList.remove('opacity-0', 'pointer-events-none');
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        bar.classList.add('opacity-0', 'pointer-events-none');
-      }, 2600);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function showAppDialog(title, message, onConfirm) {
       document.getElementById('dialogTitle').innerText = title;
       document.getElementById('dialogMessage').innerText = message;
-      document.getElementById('dialogConfirmBtn').onclick = () => {
+      const confirmBtn = document.getElementById('dialogConfirmBtn');
+      const newBtn = confirmBtn.cloneNode(true);
+      confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+      newBtn.addEventListener('click', async () => {
         closeAppDialog();
-        onConfirm();
-      };
+        if (typeof onConfirm === 'function') {
+          await onConfirm();
+        }
+      });
       document.getElementById('appDialog').classList.remove('hidden');
     }
 
@@ -2467,14 +3523,46 @@
       document.getElementById('appDialog').classList.add('hidden');
     }
 
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toastNotification');
+      const icon = document.getElementById('toastIcon');
+      const msgEl = document.getElementById('toastMessage');
+      if (!toast || !msgEl) return;
+
+      msgEl.innerText = message;
+      if (type === 'warning') {
+        icon.className = 'ph ph-warning-circle text-amber-400 text-base';
+      } else {
+        icon.className = 'ph ph-check-circle text-emerald-400 text-base';
+      }
+
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 3200);
+    }
+
+    function formatFirestoreTimestamp(ts) {
+      if (!ts) return '-';
+      try {
+        const d = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+        if (isNaN(d.getTime())) return '-';
+        const datePart = `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`;
+        const timePart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return `${datePart} ${timePart}`;
+      } catch (e) {
+        return '-';
+      }
+    }
+
     function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
+      return String(str || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(/'/g, '&#39;');
     }
   </script>
 </body>
